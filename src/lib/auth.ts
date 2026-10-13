@@ -14,7 +14,18 @@ export const googleEnabled = !!(googleId && googleSecret);
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: { enabled: true, minPasswordLength: 8 },
-  socialProviders: googleEnabled ? { google: { clientId: googleId!, clientSecret: googleSecret! } } : {},
+  socialProviders: googleEnabled
+    ? {
+        google: {
+          clientId: googleId!,
+          clientSecret: googleSecret!,
+          prompt: "select_account", // let people pick which Google account to use
+        },
+      }
+    : {},
+  // Google is not linked to an existing email/password account with the same address unless that
+  // email was verified (Better Auth's default) — otherwise someone could pre-register a victim's
+  // email and gain access when the victim later signs in with Google.
   plugins: [nextCookies()],
 });
 

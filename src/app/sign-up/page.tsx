@@ -7,11 +7,12 @@ import { safeNext, type SearchParams } from "@/lib/redirect";
 export const metadata: Metadata = { title: "Create account · Lao Typing" };
 
 export default async function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
-  const next = safeNext((await searchParams).next);
+  const params = await searchParams;
+  const next = safeNext(params.next);
   if (await getSession()) redirect(next);
   return (
     <main className="flex flex-1 items-start justify-center px-4 py-10 sm:py-16">
-      <AuthForm mode="sign-up" googleEnabled={googleEnabled} next={next} />
+      <AuthForm mode="sign-up" googleEnabled={googleEnabled} next={next} oauthError={!!params.error} />
     </main>
   );
 }

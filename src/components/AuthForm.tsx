@@ -10,13 +10,14 @@ interface Props {
   mode: "sign-in" | "sign-up";
   googleEnabled: boolean;
   next: string;
+  oauthError?: boolean;
 }
 
-export default function AuthForm({ mode, googleEnabled, next }: Props) {
+export default function AuthForm({ mode, googleEnabled, next, oauthError = false }: Props) {
   const { t } = useLang();
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(oauthError ? t("googleError") : null);
   const isSignUp = mode === "sign-up";
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,7 +41,13 @@ export default function AuthForm({ mode, googleEnabled, next }: Props) {
 
   const google = async () => {
     setPending(true);
-    await authClient.signIn.social({ provider: "google", callbackURL: next });
+    setError(null);
+    const errorURL = `/${mode}?error=google${next !== "/" ? `&next=${encodeURIComponent(next)}` : ""}`;
+    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: next, errorCallbackURL: errorURL });
+    if (error) {
+      setPending(false);
+      setError(t("googleError"));
+    }
   };
 
   const field =

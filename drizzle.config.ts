@@ -8,7 +8,8 @@ try {
 }
 
 // Fail fast: with a non-Postgres URL the pg driver silently tries localhost without a password and hangs.
-if (!/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "")) {
+const url = process.env.DATABASE_URL ?? "";
+if (!/^postgres(ql)?:\/\//.test(url)) {
   throw new Error(
     "DATABASE_URL must be a PostgreSQL URL like postgres://user:password@localhost:5432/lao_typing (see .env.example)",
   );
@@ -18,5 +19,5 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL },
+  dbCredentials: { url },
 });
