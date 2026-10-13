@@ -7,7 +7,12 @@ try {
   // no .env.local — use the environment as is
 }
 
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set (see .env.example)");
+// Fail fast: with a non-Postgres URL the pg driver silently tries localhost without a password and hangs.
+if (!/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL ?? "")) {
+  throw new Error(
+    "DATABASE_URL must be a PostgreSQL URL like postgres://user:password@localhost:5432/lao_typing (see .env.example)",
+  );
+}
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
