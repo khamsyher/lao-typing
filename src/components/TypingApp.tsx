@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Keyboard from "./Keyboard";
+import { useLang } from "./LangProvider";
 import { LESSONS, makeLessonText, makeSentencesText, makeWordsText } from "@/lib/content";
-import { MESSAGES, translate, type Lang, type StringKey } from "@/lib/i18n";
+import { MESSAGES, type StringKey } from "@/lib/i18n";
 import { FINGER_NAMES, HINT_BY_CHAR, KEY_BY_CODE, isCombining } from "@/lib/layout";
+import { labelForKey } from "@/lib/modes";
 import { load, save } from "@/lib/storage";
 import {
   computeStats,
@@ -18,7 +21,6 @@ import {
 type Mode = "lessons" | "words" | "sentences" | "timed";
 
 interface Prefs {
-  lang: Lang;
   mode: Mode;
   lessonId: string;
   wordCount: number;
@@ -37,8 +39,9 @@ interface Result {
   at: number;
 }
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 const DEFAULT_PREFS: Prefs = {
-  lang: "lo",
   mode: "lessons",
   lessonId: LESSONS[0].id,
   wordCount: 25,
@@ -79,23 +82,10 @@ function resultKey(p: Prefs): string {
   }
 }
 
-function resultLabel(p: Prefs, lang: Lang): string {
-  const tr = (k: StringKey) => translate(lang, k);
-  switch (p.mode) {
-    case "lessons":
-      return (LESSONS.find((l) => l.id === p.lessonId) ?? LESSONS[0]).title[lang];
-    case "words":
-      return `${tr("words")} · ${p.wordCount}`;
-    case "sentences":
-      return `${tr("sentences")} · ${p.sentenceCount}`;
-    case "timed":
-      return `${tr("timed")} · ${p.seconds}${tr("seconds")}`;
-  }
-}
-
 const displayChar = (ch: string) => (ch === " " ? "␣" : isCombining(ch) ? "◌" + ch : ch);
 
-export default function TypingApp() {
+export default function TypingApp({ signedIn }: { signedIn: boolean }) {
+  const { lang, t } = useLang();
   const [prefs, setPrefs] = useState<Prefs>(() => ({ ...DEFAULT_PREFS, ...load("prefs", {}) }));
   const [typing, setTyping] = useState<TypingState>(() => initTyping(buildText(prefs)));
   const [history, setHistory] = useState<Result[]>(() => load("history", []));
@@ -105,6 +95,7 @@ export default function TypingApp() {
   const [focused, setFocused] = useState(false);
   const [pressed, setPressed] = useState<Set<string>>(() => new Set());
   const [latinWarn, setLatinWarn] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const typingRef = useRef(typing);
   const prefsRef = useRef(prefs);
@@ -112,15 +103,29 @@ export default function TypingApp() {
   const boxRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLSpanElement>(null);
 
-  const t = (k: StringKey) => translate(prefs.lang, k);
+  const saveToAccount = useCallback(async (modeKey: string, state: TypingState, seconds: number, correct: number) => {
+    setSaveStatus("saving");
+    try {
+      const res = await fetch("/api/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modeKey, correct, keystrokes: state.keystrokes, errors: state.errors, seconds }),
+      });
+      setSaveStatus(res.ok ? "saved" : "error");
+    } catch {
+      setSaveStatus("error");
+    }
+  }, []);
 
   const recordResult = useCallback((state: TypingState) => {
     const p = prefsRef.current;
     const stats = computeStats(state, state.end ?? Date.now());
     if (stats.correct === 0) return setFinishInfo({ isBest: false });
+    const key = resultKey(p);
+    if (signedIn) void saveToAccount(key, state, stats.seconds, stats.correct);
     const result: Result = {
-      key: resultKey(p),
-      label: resultLabel(p, p.lang),
+      key,
+      label: labelForKey(key, lang),
       wpm: Math.round(stats.wpm),
       cpm: Math.round(stats.cpm),
       accuracy: Math.round(stats.accuracy),
@@ -136,7 +141,7 @@ export default function TypingApp() {
       setBest(nextBest);
       save("best", nextBest);
     }
-  }, [history, best]);
+  }, [history, best, signedIn, saveToAccount, lang]);
 
   const apply = useCallback(
     (action: TypingAction) => {
@@ -155,6 +160,7 @@ export default function TypingApp() {
       const text = sameText ? typingRef.current.chars.join("") : buildText(p);
       apply({ type: "reset", text });
       setFinishInfo(null);
+      setSaveStatus("idle");
       setLatinWarn(false);
       setNow(0);
       inputRef.current?.focus();
@@ -228,10 +234,6 @@ export default function TypingApp() {
     box.scrollTo({ top: Math.max(0, caret.offsetTop - lineHeight), behavior: "smooth" });
   }, [typing.typed.length, typing.chars]);
 
-  useEffect(() => {
-    document.documentElement.lang = prefs.lang;
-  }, [prefs.lang]);
-
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Tab") {
       e.preventDefault();
@@ -295,36 +297,7 @@ export default function TypingApp() {
   const recent = history.slice(0, 8);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-xl bg-accent font-lao text-2xl leading-none text-accent-fg shadow-sm">
-            ກ
-          </div>
-          <div>
-            <h1 className="font-lao text-xl font-bold leading-tight">ພິມລາວ · Lao Typing</h1>
-            <p className="font-lao text-sm text-muted">{t("tagline")}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-line bg-surface p-0.5 text-sm">
-            {(["lo", "en"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => updatePrefs({ lang: l }, false)}
-                className={`rounded-md px-3 py-1 font-lao transition-colors ${
-                  prefs.lang === l ? "bg-accent text-accent-fg" : "text-muted hover:text-fg"
-                }`}
-              >
-                {l === "lo" ? "ລາວ" : "EN"}
-              </button>
-            ))}
-          </div>
-          <ThemeToggle />
-        </div>
-      </header>
-
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       {/* Mode selection */}
       <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 sm:p-4">
         <div className="flex flex-wrap gap-1.5">
@@ -345,7 +318,7 @@ export default function TypingApp() {
             LESSONS.map((l, i) => (
               <Chip key={l.id} active={prefs.lessonId === l.id} onClick={() => updatePrefs({ lessonId: l.id })}>
                 <span className="mr-1 text-muted">{i + 1}.</span>
-                {l.title[prefs.lang]}
+                {l.title[lang]}
                 {best[`lessons:${l.id}`] ? <span className="ml-1.5 text-xs text-success">★</span> : null}
               </Chip>
             ))}
@@ -395,6 +368,8 @@ export default function TypingApp() {
             stats={stats}
             errors={typing.errors}
             isBest={finishInfo?.isBest ?? false}
+            signedIn={signedIn}
+            saveStatus={saveStatus}
             best={best[resultKey(prefs)]}
             t={t}
             onRestart={() => restart(prefs, true)}
@@ -484,7 +459,7 @@ export default function TypingApp() {
                 {hintKey.en}
               </kbd>
               <span className="hidden sm:inline">
-                {hintKey.finger && `· ${t("useFinger")} ${FINGER_NAMES[hintKey.finger][prefs.lang]}`}
+                {hintKey.finger && `· ${t("useFinger")} ${FINGER_NAMES[hintKey.finger][lang]}`}
               </span>
             </>
           ) : null}
@@ -512,7 +487,15 @@ export default function TypingApp() {
 
       {/* History */}
       <section className="rounded-2xl border border-line bg-surface p-4">
-        <h2 className="mb-3 font-lao text-sm font-semibold">{t("history")}</h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-lao text-sm font-semibold">{t("history")}</h2>
+          <Link
+            href={signedIn ? "/history" : "/sign-up"}
+            className="font-lao text-sm text-accent hover:underline"
+          >
+            {signedIn ? t("viewHistory") : t("joinLeaderboard")} →
+          </Link>
+        </div>
         {recent.length === 0 ? (
           <p className="font-lao text-sm text-muted">{t("noHistory")}</p>
         ) : (
@@ -597,6 +580,8 @@ function ResultCard({
   stats,
   errors,
   isBest,
+  signedIn,
+  saveStatus,
   best,
   t,
   onRestart,
@@ -605,6 +590,8 @@ function ResultCard({
   stats: ReturnType<typeof computeStats>;
   errors: number;
   isBest: boolean;
+  signedIn: boolean;
+  saveStatus: SaveStatus;
   best?: number;
   t: (k: StringKey) => string;
   onRestart: () => void;
@@ -626,6 +613,19 @@ function ResultCard({
           {t("best")}: <b className="font-mono text-fg">{best}</b> {t("wpm")}
         </p>
       ) : null}
+      <p className="mt-3 font-lao text-sm">
+        {signedIn ? (
+          <span className={saveStatus === "error" ? "text-error" : saveStatus === "saved" ? "text-success" : "text-muted"}>
+            {saveStatus === "saving" && t("saving")}
+            {saveStatus === "saved" && `✓ ${t("saved")}`}
+            {saveStatus === "error" && t("saveError")}
+          </span>
+        ) : (
+          <Link href="/sign-in" className="text-accent hover:underline">
+            {t("signInToSave")} →
+          </Link>
+        )}
+      </p>
       <div className="mt-6 flex justify-center gap-3">
         <button
           onClick={onRestart}
@@ -651,25 +651,5 @@ function MiniStat({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="font-lao text-xs text-muted">{label}</div>
       <div className="font-mono text-lg font-semibold tabular-nums">{value}</div>
     </div>
-  );
-}
-
-function ThemeToggle() {
-  const toggle = () => {
-    const root = document.documentElement;
-    const next = root.dataset.theme === "dark" ? "light" : "dark";
-    root.dataset.theme = next;
-    save("theme", next);
-  };
-  return (
-    <button
-      onClick={toggle}
-      aria-label="Toggle dark mode"
-      className="grid size-9 place-items-center rounded-lg border border-line bg-surface text-muted transition-colors hover:text-fg"
-    >
-      <svg viewBox="0 0 24 24" className="size-4.5 fill-none stroke-current stroke-2" aria-hidden>
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-      </svg>
-    </button>
   );
 }

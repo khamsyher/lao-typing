@@ -10,3 +10,7 @@ type Messages = Record<StringKey, string>;
 export const MESSAGES: Record<Lang, Messages> = { en, lo: lo satisfies Messages };
 
 export const translate = (lang: Lang, key: StringKey) => MESSAGES[lang][key];
+
+// The chosen language is kept in a cookie so server-rendered pages use it too.
+export const LANG_COOKIE = "lang";
+export const parseLang = (value: string | undefined): Lang => (value === "en" ? "en" : "lo");

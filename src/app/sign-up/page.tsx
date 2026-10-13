@@ -1,0 +1,17 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import AuthForm from "@/components/AuthForm";
+import { getSession, googleEnabled } from "@/lib/auth";
+import { safeNext, type SearchParams } from "@/lib/redirect";
+
+export const metadata: Metadata = { title: "Create account · Lao Typing" };
+
+export default async function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
+  const next = safeNext((await searchParams).next);
+  if (await getSession()) redirect(next);
+  return (
+    <main className="flex flex-1 items-start justify-center px-4 py-10 sm:py-16">
+      <AuthForm mode="sign-up" googleEnabled={googleEnabled} next={next} />
+    </main>
+  );
+}

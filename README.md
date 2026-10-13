@@ -9,18 +9,27 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
 - On-screen keyboard that highlights the next key, Shift and which finger to use
 - **Built-in Lao layout**: type Lao without installing a Lao keyboard (maps physical keys)
 - Personal bests and recent results saved in the browser
+- **Accounts** (email + password, optional Google): results are saved to your history at `/history`
+- **Public leaderboard** at `/leaderboard`: best speed per typist for timed, word and sentence tests (90%+ accuracy), all time / month / week / today
 - Lao / English UI, light / dark theme
 - Shortcuts: `Tab` restart same text, `Esc` new text, `Ctrl+Backspace` delete word
 
 ## Develop
 ```bash
 npm install
-npm run dev     # http://localhost:3000
-npm run build && npm start
+cp .env.example .env.local   # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run db:push              # create the database tables (local SQLite file)
+npm run dev                  # http://localhost:3000
 ```
 
-## Deploy
-Push to GitHub and import the repo on [Vercel](https://vercel.com) — no configuration needed.
+## Deploy (Vercel + Turso)
+A local SQLite file does not persist on Vercel, so use a hosted libSQL database:
+1. Create a database on [Turso](https://turso.tech) and get its URL (`libsql://…`) and auth token.
+2. Run `npm run db:push` once with `DATABASE_URL` / `DATABASE_AUTH_TOKEN` pointing at it.
+3. Import the repo on Vercel and set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (your site URL),
+   `DATABASE_URL`, `DATABASE_AUTH_TOKEN`.
+4. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
+   `<site>/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
 ## Where things live
 - `src/lib/layout.ts` – keyboard layout and finger map
@@ -28,3 +37,8 @@ Push to GitHub and import the repo on [Vercel](https://vercel.com) — no config
 - `src/lib/typing.ts` – typing state, stats, grapheme clustering
 - `src/components/TypingApp.tsx` – main UI
 - `src/components/Keyboard.tsx` – on-screen keyboard
+- `src/locales/*.json` – UI text (English / Lao)
+- `src/lib/auth.ts` – Better Auth config; `src/app/api/auth` – auth endpoints
+- `src/db/schema.ts`, `src/db/queries.ts` – database tables and leaderboard/history queries
+- `src/app/api/results` – saves results (speed recomputed and checked on the server)
+- `src/app/history`, `src/app/leaderboard`, `src/app/sign-in`, `src/app/sign-up` – pages
