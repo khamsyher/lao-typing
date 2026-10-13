@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Keyboard from "./Keyboard";
 import { LESSONS, makeLessonText, makeSentencesText, makeWordsText } from "@/lib/content";
-import { STRINGS, type Lang, type StringKey } from "@/lib/i18n";
+import { MESSAGES, translate, type Lang, type StringKey } from "@/lib/i18n";
 import { FINGER_NAMES, HINT_BY_CHAR, KEY_BY_CODE, isCombining } from "@/lib/layout";
 import { load, save } from "@/lib/storage";
 import {
@@ -80,7 +80,7 @@ function resultKey(p: Prefs): string {
 }
 
 function resultLabel(p: Prefs, lang: Lang): string {
-  const tr = (k: StringKey) => STRINGS[k][lang];
+  const tr = (k: StringKey) => translate(lang, k);
   switch (p.mode) {
     case "lessons":
       return (LESSONS.find((l) => l.id === p.lessonId) ?? LESSONS[0]).title[lang];
@@ -112,7 +112,7 @@ export default function TypingApp() {
   const boxRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLSpanElement>(null);
 
-  const t = (k: StringKey) => STRINGS[k][prefs.lang];
+  const t = (k: StringKey) => translate(prefs.lang, k);
 
   const recordResult = useCallback((state: TypingState) => {
     const p = prefsRef.current;
@@ -522,7 +522,7 @@ export default function TypingApp() {
                 <span className="truncate font-lao">{r.label}</span>
                 <span className="flex shrink-0 items-center gap-4 font-mono tabular-nums text-muted">
                   <span>
-                    <b className="text-fg">{r.wpm}</b> {STRINGS.wpm.en}
+                    <b className="text-fg">{r.wpm}</b> {MESSAGES.en.wpm}
                   </span>
                   <span className="hidden sm:inline">{r.cpm} CPM</span>
                   <span>{r.accuracy}%</span>
