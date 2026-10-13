@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --fg: #1c1f26;
+  --muted: #7d828c;
+  --line: #e4e1d8;
+  --accent: #1f4fd1;
+  --accent-fg: #ffffff;
+  --accent-ring: rgb(31 79 209 / 0.22);
+  --error: #d1263b;
+  --success: #16803c;
+  --warn: #c98a04;
+  --key: #ffffff;
+  --key-down: #ebe9e2;
+  --finger-0: #a3a3a3;
+  --finger-1: #e11d48;
+  --finger-2: #f59e0b;
+  --finger-3: #10b981;
+  --finger-4: #3b82f6;
+  --finger-5: #8b5cf6;
+  --finger-6: #10b981;
+  --finger-7: #f59e0b;
+  --finger-8: #e11d48;
+}
+
+:root[data-theme="dark"] {
+  --bg: #14161c;
+  --surface: #1c1f27;
+  --fg: #e8e9ec;
+  --muted: #868b96;
+  --line: #2c303a;
+  --accent: #6b93ff;
+  --accent-fg: #0d1222;
+  --accent-ring: rgb(107 147 255 / 0.25);
+  --error: #ff6b7d;
+  --success: #4ade80;
+  --warn: #f5b638;
+  --key: #22252e;
+  --key-down: #2e323d;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-error: var(--error);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-key: var(--key);
+  --color-key-down: var(--key-down);
+  --color-finger-0: var(--finger-0);
+  --color-finger-1: var(--finger-1);
+  --color-finger-2: var(--finger-2);
+  --color-finger-3: var(--finger-3);
+  --color-finger-4: var(--finger-4);
+  --color-finger-5: var(--finger-5);
+  --color-finger-6: var(--finger-6);
+  --color-finger-7: var(--finger-7);
+  --color-finger-8: var(--finger-8);
+  --font-sans: var(--font-geist-sans), var(--font-noto-lao), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-lao: var(--font-noto-lao), "Phetsarath OT", "Saysettha OT", sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+}
+
+.caret {
+  animation: caret-blink 1s step-end infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
 }
