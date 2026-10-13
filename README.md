@@ -18,7 +18,7 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
 ```bash
 npm install
 cp .env.example .env.local   # then set BETTER_AUTH_SECRET and DATABASE_URL
-createdb lao_typing          # or create the database in pgAdmin
+createdb lao_typing_app      # use a new, empty database (not one shared with another app)
 npm run db:push              # create the tables in your PostgreSQL database
 npm run dev                  # http://localhost:3000
 ```
