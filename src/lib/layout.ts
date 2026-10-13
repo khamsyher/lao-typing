@@ -10,7 +10,7 @@ export interface KeyDef {
   en: string; // label on a US keyboard
   lao: string; // output without shift
   laoShift: string; // output with shift
-  finger: Finger;
+  finger?: Finger; // only keys that type characters have a finger
   width?: number; // relative width (1 = normal key)
 }
 
@@ -22,6 +22,9 @@ const k = (
   finger: Finger,
   width?: number,
 ): KeyDef => ({ code, en, lao, laoShift, finger, width });
+
+// A key that does not type a character (modifiers, function, navigation, numpad).
+const s = (code: string, en: string, width?: number): KeyDef => ({ code, en, lao: "", laoShift: "", width });
 
 export const KEY_ROWS: KeyDef[][] = [
   [
@@ -85,10 +88,66 @@ export const KEY_ROWS: KeyDef[][] = [
     k("Slash", "/", "ຝ", ")", "rp"),
     k("ShiftRight", "Shift", "", "", "rp", 2.75),
   ],
-  [k("Space", "Space", " ", " ", "thumb", 6.25)],
+  [
+    s("ControlLeft", "Ctrl", 1.25),
+    s("MetaLeft", "Win", 1.25),
+    s("AltLeft", "Alt", 1.25),
+    k("Space", "Space", " ", " ", "thumb", 6.25),
+    s("AltRight", "Alt", 1.25),
+    s("MetaRight", "Win", 1.25),
+    s("ContextMenu", "Menu", 1.25),
+    s("ControlRight", "Ctrl", 1.25),
+  ],
 ];
 
-const ALL_KEYS = KEY_ROWS.flat();
+// Full-size (100%) keyboard: function row, main block, navigation cluster and numpad,
+// positioned in key units. Row 0 is the function row, rows 1-5 are the main block.
+export interface PlacedKey {
+  key: KeyDef;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const KEYBOARD_UNITS = 23;
+
+export const FULL_KEYBOARD: PlacedKey[] = (() => {
+  const out: PlacedKey[] = [];
+  // Numbers in a row are gaps, measured in key units.
+  const row = (y: number, x: number, items: (KeyDef | number)[]) => {
+    for (const item of items) {
+      if (typeof item === "number") {
+        x += item;
+        continue;
+      }
+      const w = item.width ?? 1;
+      out.push({ key: item, x, y, w, h: 1 });
+      x += w;
+    }
+  };
+  const f = (n: number) => s(`F${n}`, `F${n}`);
+
+  row(0, 0, [s("Escape", "Esc"), 1, f(1), f(2), f(3), f(4), 0.5, f(5), f(6), f(7), f(8), 0.5, f(9), f(10), f(11), f(12)]);
+  KEY_ROWS.forEach((keys, i) => row(i + 1, 0, keys));
+
+  row(0, 15.5, [s("PrintScreen", "PrtSc"), s("ScrollLock", "ScrLk"), s("Pause", "Pause")]);
+  row(1, 15.5, [s("Insert", "Ins"), s("Home", "Home"), s("PageUp", "PgUp")]);
+  row(2, 15.5, [s("Delete", "Del"), s("End", "End"), s("PageDown", "PgDn")]);
+  row(4, 16.5, [s("ArrowUp", "↑")]);
+  row(5, 15.5, [s("ArrowLeft", "←"), s("ArrowDown", "↓"), s("ArrowRight", "→")]);
+
+  row(1, 19, [s("NumLock", "Num"), s("NumpadDivide", "/"), s("NumpadMultiply", "*"), s("NumpadSubtract", "-")]);
+  row(2, 19, [s("Numpad7", "7"), s("Numpad8", "8"), s("Numpad9", "9")]);
+  row(3, 19, [s("Numpad4", "4"), s("Numpad5", "5"), s("Numpad6", "6")]);
+  row(4, 19, [s("Numpad1", "1"), s("Numpad2", "2"), s("Numpad3", "3")]);
+  row(5, 19, [s("Numpad0", "0", 2), s("NumpadDecimal", ".")]);
+  out.push({ key: s("NumpadAdd", "+"), x: 22, y: 2, w: 1, h: 2 });
+  out.push({ key: s("NumpadEnter", "Enter"), x: 22, y: 4, w: 1, h: 2 });
+  return out;
+})();
+
+const ALL_KEYS = FULL_KEYBOARD.map((p) => p.key);
 
 export const KEY_BY_CODE: Record<string, KeyDef> = Object.fromEntries(
   ALL_KEYS.map((key) => [key.code, key]),

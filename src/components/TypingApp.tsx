@@ -295,7 +295,7 @@ export default function TypingApp() {
   const recent = history.slice(0, 8);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8">
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -484,7 +484,7 @@ export default function TypingApp() {
                 {hintKey.en}
               </kbd>
               <span className="hidden sm:inline">
-                · {t("useFinger")} {FINGER_NAMES[hintKey.finger][prefs.lang]}
+                {hintKey.finger && `· ${t("useFinger")} ${FINGER_NAMES[hintKey.finger][prefs.lang]}`}
               </span>
             </>
           ) : null}
@@ -580,10 +580,10 @@ function Toggle({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-accent" : "bg-line"}`}
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-line"}`}
       >
         <span
-          className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${
+          className={`absolute left-0 top-0.5 size-4 rounded-full bg-white shadow transition-transform ${
             checked ? "translate-x-4.5" : "translate-x-0.5"
           }`}
         />
