@@ -1,27 +1,32 @@
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, doublePrecision, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
+const createdAt = () => timestamp("createdAt", { withTimezone: true }).notNull().defaultNow();
+const updatedAt = () =>
+  timestamp("updatedAt", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date());
 
 // ---- Better Auth tables ----
 
-export const user = sqliteTable("user", {
+export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: integer("emailVerified", { mode: "boolean" }).notNull().default(false),
+  emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
-  createdAt: timestamp("createdAt").notNull().$defaultFn(() => new Date()),
-  updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
 });
 
-export const session = sqliteTable(
+export const session = pgTable(
   "session",
   {
     id: text("id").primaryKey(),
-    expiresAt: timestamp("expiresAt").notNull(),
+    expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
     token: text("token").notNull().unique(),
-    createdAt: timestamp("createdAt").notNull().$defaultFn(() => new Date()),
-    updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
     ipAddress: text("ipAddress"),
     userAgent: text("userAgent"),
     userId: text("userId")
@@ -31,7 +36,7 @@ export const session = sqliteTable(
   (t) => [index("session_userId_idx").on(t.userId)],
 );
 
-export const account = sqliteTable(
+export const account = pgTable(
   "account",
   {
     id: text("id").primaryKey(),
@@ -43,45 +48,45 @@ export const account = sqliteTable(
     accessToken: text("accessToken"),
     refreshToken: text("refreshToken"),
     idToken: text("idToken"),
-    accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
-    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+    accessTokenExpiresAt: timestamp("accessTokenExpiresAt", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt", { withTimezone: true }),
     scope: text("scope"),
     password: text("password"),
-    createdAt: timestamp("createdAt").notNull().$defaultFn(() => new Date()),
-    updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
   (t) => [index("account_userId_idx").on(t.userId)],
 );
 
-export const verification = sqliteTable(
+export const verification = pgTable(
   "verification",
   {
     id: text("id").primaryKey(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
-    expiresAt: timestamp("expiresAt").notNull(),
-    createdAt: timestamp("createdAt").notNull().$defaultFn(() => new Date()),
-    updatedAt: timestamp("updatedAt").notNull().$defaultFn(() => new Date()),
+    expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
   },
   (t) => [index("verification_identifier_idx").on(t.identifier)],
 );
 
 // ---- App tables ----
 
-export const result = sqliteTable(
+export const result = pgTable(
   "result",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     userId: text("userId")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     modeKey: text("modeKey").notNull(), // e.g. "timed:60", "words:25", "lessons:top"
-    wpm: real("wpm").notNull(),
-    cpm: real("cpm").notNull(),
-    accuracy: real("accuracy").notNull(),
+    wpm: doublePrecision("wpm").notNull(),
+    cpm: doublePrecision("cpm").notNull(),
+    accuracy: doublePrecision("accuracy").notNull(),
     errors: integer("errors").notNull(),
-    seconds: real("seconds").notNull(),
-    createdAt: timestamp("createdAt").notNull().$defaultFn(() => new Date()),
+    seconds: doublePrecision("seconds").notNull(),
+    createdAt: createdAt(),
   },
   (t) => [
     index("result_user_created_idx").on(t.userId, t.createdAt),

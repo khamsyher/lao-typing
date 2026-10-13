@@ -17,17 +17,18 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
 ## Develop
 ```bash
 npm install
-cp .env.example .env.local   # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
-npm run db:push              # create the database tables (local SQLite file)
+cp .env.example .env.local   # then set BETTER_AUTH_SECRET and DATABASE_URL
+createdb lao_typing          # or create the database in pgAdmin
+npm run db:push              # create the tables in your PostgreSQL database
 npm run dev                  # http://localhost:3000
 ```
 
-## Deploy (Vercel + Turso)
-A local SQLite file does not persist on Vercel, so use a hosted libSQL database:
-1. Create a database on [Turso](https://turso.tech) and get its URL (`libsql://…`) and auth token.
-2. Run `npm run db:push` once with `DATABASE_URL` / `DATABASE_AUTH_TOKEN` pointing at it.
-3. Import the repo on Vercel and set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (your site URL),
-   `DATABASE_URL`, `DATABASE_AUTH_TOKEN`.
+## Deploy (Vercel + hosted PostgreSQL)
+1. Create a PostgreSQL database (Neon, Supabase, Railway, Vercel Postgres, …) and copy its
+   connection string (add `?sslmode=require` if the provider needs SSL).
+2. Run `npm run db:push` once with `DATABASE_URL` pointing at it.
+3. Import the repo on Vercel and set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (your site URL) and
+   `DATABASE_URL`. On serverless, a pooled connection string and a small `DATABASE_POOL_MAX` (e.g. 3) work best.
 4. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
    `<site>/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
@@ -39,6 +40,7 @@ A local SQLite file does not persist on Vercel, so use a hosted libSQL database:
 - `src/components/Keyboard.tsx` – on-screen keyboard
 - `src/locales/*.json` – UI text (English / Lao)
 - `src/lib/auth.ts` – Better Auth config; `src/app/api/auth` – auth endpoints
+- `src/db/index.ts` – PostgreSQL connection pool (node-postgres + Drizzle)
 - `src/db/schema.ts`, `src/db/queries.ts` – database tables and leaderboard/history queries
 - `src/app/api/results` – saves results (speed recomputed and checked on the server)
 - `src/app/history`, `src/app/leaderboard`, `src/app/sign-in`, `src/app/sign-up` – pages

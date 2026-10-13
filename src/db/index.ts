@@ -1,17 +1,18 @@
-import { createClient, type Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
-// Local development uses a SQLite file; in production point DATABASE_URL at Turso (libsql://…).
-const globalForDb = globalThis as unknown as { libsql?: Client };
+// DATABASE_URL: postgres://user:password@host:5432/dbname (add ?sslmode=require for hosted databases).
+// Reuse one pool across hot reloads in development.
+const globalForDb = globalThis as unknown as { pgPool?: Pool };
 
-const client =
-  globalForDb.libsql ??
-  createClient({
-    url: process.env.DATABASE_URL ?? "file:local.db",
-    authToken: process.env.DATABASE_AUTH_TOKEN,
+const pool =
+  globalForDb.pgPool ??
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: Number(process.env.DATABASE_POOL_MAX ?? 10),
   });
 
-if (process.env.NODE_ENV !== "production") globalForDb.libsql = client;
+if (process.env.NODE_ENV !== "production") globalForDb.pgPool = pool;
 
-export const db = drizzle(client, { schema });
+export const db = drizzle(pool, { schema });

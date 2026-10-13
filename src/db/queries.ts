@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from ".";
 import { result, user } from "./schema";
 
@@ -33,21 +33,18 @@ export interface LeaderboardEntry {
   createdAt: Date;
 }
 
-// Best result per typist for one board. SQLite returns the other columns from the row
-// that holds the MAX(), so accuracy and date belong to the best run.
+// Best result per typist for one board: DISTINCT ON keeps each user's fastest run
+// (ties broken by accuracy, then the earlier run), then those runs are ranked.
 export async function getLeaderboard(modeKey: string, period: Period): Promise<LeaderboardEntry[]> {
   const since = periodStart(period);
-  const best = sql<number>`max(${result.wpm})`;
-  const rows = await db
-    .select({
+  const bestRuns = db
+    .selectDistinctOn([result.userId], {
       userId: result.userId,
-      name: user.name,
-      wpm: best,
+      wpm: result.wpm,
       accuracy: result.accuracy,
       createdAt: result.createdAt,
     })
     .from(result)
-    .innerJoin(user, eq(user.id, result.userId))
     .where(
       and(
         eq(result.modeKey, modeKey),
@@ -55,10 +52,21 @@ export async function getLeaderboard(modeKey: string, period: Period): Promise<L
         since ? gte(result.createdAt, since) : undefined,
       ),
     )
-    .groupBy(result.userId)
-    .orderBy(desc(best))
+    .orderBy(result.userId, desc(result.wpm), desc(result.accuracy), asc(result.createdAt))
+    .as("best_runs");
+
+  return db
+    .select({
+      userId: bestRuns.userId,
+      name: user.name,
+      wpm: bestRuns.wpm,
+      accuracy: bestRuns.accuracy,
+      createdAt: bestRuns.createdAt,
+    })
+    .from(bestRuns)
+    .innerJoin(user, eq(user.id, bestRuns.userId))
+    .orderBy(desc(bestRuns.wpm), desc(bestRuns.accuracy), asc(bestRuns.createdAt))
     .limit(LEADERBOARD_SIZE);
-  return rows;
 }
 
 export async function getUserResults(userId: string, limit = 100) {
@@ -73,10 +81,11 @@ export async function getUserResults(userId: string, limit = 100) {
 export async function getUserSummary(userId: string) {
   const [row] = await db
     .select({
-      tests: sql<number>`count(*)`,
+      // Postgres returns count() as bigint and avg() as numeric (strings in node-postgres); cast them.
+      tests: sql<number>`count(*)::int`,
       bestWpm: sql<number | null>`max(${result.wpm})`,
-      avgAccuracy: sql<number | null>`avg(${result.accuracy})`,
-      totalSeconds: sql<number | null>`sum(${result.seconds})`,
+      avgAccuracy: sql<number | null>`avg(${result.accuracy})::float8`,
+      totalSeconds: sql<number | null>`sum(${result.seconds})::float8`,
     })
     .from(result)
     .where(eq(result.userId, userId));

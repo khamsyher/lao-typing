@@ -12,7 +12,7 @@ const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
 export const googleEnabled = !!(googleId && googleSecret);
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "sqlite", schema }),
+  database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: { enabled: true, minPasswordLength: 8 },
   socialProviders: googleEnabled ? { google: { clientId: googleId!, clientSecret: googleSecret! } } : {},
   plugins: [nextCookies()],

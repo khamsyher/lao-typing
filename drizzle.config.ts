@@ -4,15 +4,14 @@ import { defineConfig } from "drizzle-kit";
 try {
   process.loadEnvFile(".env.local");
 } catch {
-  // no .env.local — fall back to the defaults below
+  // no .env.local — use the environment as is
 }
+
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set (see .env.example)");
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
-  dialect: "turso",
-  dbCredentials: {
-    url: process.env.DATABASE_URL ?? "file:local.db",
-    authToken: process.env.DATABASE_AUTH_TOKEN,
-  },
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL },
 });
