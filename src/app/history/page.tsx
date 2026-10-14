@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { formatDate, formatDuration } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n-server";
@@ -9,7 +10,38 @@ import { getUserResults, getUserSummary } from "@/lib/results";
 
 export const metadata: Metadata = { title: "My history · Lao Typing" };
 
-export default async function HistoryPage() {
+// The session is request data, so it is read inside <Suspense>: the page shell renders
+// instantly and the user's results stream in.
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<HistorySkeleton />}>
+      <History />
+    </Suspense>
+  );
+}
+
+function HistorySkeleton() {
+  return (
+    <main className="mx-auto flex w-full max-w-6xl flex-1 animate-pulse flex-col gap-6 px-4 py-6" aria-hidden>
+      <div>
+        <div className="h-7 w-48 rounded bg-line" />
+        <div className="mt-2 h-4 w-32 rounded bg-line/70" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="h-[74px] rounded-2xl border border-line bg-surface" />
+        ))}
+      </div>
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="h-6 rounded bg-line/50" />
+        ))}
+      </div>
+    </main>
+  );
+}
+
+async function History() {
   const session = await getSession();
   if (!session) redirect("/sign-in?next=/history");
 

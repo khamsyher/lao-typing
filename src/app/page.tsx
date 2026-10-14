@@ -1,11 +1,20 @@
-import ClientApp from "@/components/ClientApp";
+import { Suspense } from "react";
+import ClientApp, { AppLoading } from "@/components/ClientApp";
 import { getSession } from "@/lib/auth";
 
-export default async function Home() {
-  const session = await getSession();
+// The session is request data, so it is read inside <Suspense>: the page shell renders
+// instantly and the typing app appears as soon as we know whether the visitor is signed in.
+export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
-      <ClientApp signedIn={!!session} />
+      <Suspense fallback={<AppLoading />}>
+        <Practice />
+      </Suspense>
     </main>
   );
+}
+
+async function Practice() {
+  const session = await getSession();
+  return <ClientApp signedIn={!!session} />;
 }

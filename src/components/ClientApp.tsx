@@ -9,12 +9,14 @@ const subscribe = () => () => {};
 // on the client only; the server sends a lightweight placeholder.
 export default function ClientApp({ signedIn }: { signedIn: boolean }) {
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
-  if (!mounted) {
-    return (
-      <div className="grid flex-1 place-items-center font-lao text-muted">
-        <span className="animate-pulse">ກຳລັງໂຫຼດ… · Loading…</span>
-      </div>
-    );
-  }
+  if (!mounted) return <AppLoading />;
   return <TypingApp signedIn={signedIn} />;
+}
+
+export function AppLoading() {
+  return (
+    <div className="grid flex-1 place-items-center font-lao text-muted">
+      <span className="animate-pulse">ກຳລັງໂຫຼດ… · Loading…</span>
+    </div>
+  );
 }
