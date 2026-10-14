@@ -1,8 +1,11 @@
 // Creates the database schema. Safe to re-run: it only adds what is missing.
-// Usage: npm run db:setup
+// Usage: npm run db:setup                   -> schema
+//        npm run db:setup -- --demo         -> also demo typists and results for the leaderboard
+//        npm run db:setup -- --clear-demo   -> remove the demo data again
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Client } from "pg";
+import { clearDemo, seedDemo } from "./demo-data";
 
 process.loadEnvFile?.(join(process.cwd(), ".env.local"));
 
@@ -24,6 +27,9 @@ async function main() {
         ORDER BY 1`,
     );
     console.log(`✓ Schema applied to ${client.database} (${rows.map((r) => r.name).join(", ")})`);
+
+    if (process.argv.includes("--clear-demo")) await clearDemo(client);
+    else if (process.argv.includes("--demo")) await seedDemo(client);
   } finally {
     await client.end();
   }

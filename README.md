@@ -27,6 +27,12 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
    npm run db:setup
    ```
    Or, instead: run `db/schema.sql` in a Navicat query window.
+   To fill the leaderboard with sample typists, add demo data (and remove it again before going live):
+   ```
+   npm run db:setup -- --demo        # 16 demo typists with results on every board
+   npm run db:setup -- --clear-demo  # remove them
+   ```
+   Demo users have no password, so nobody can sign in as them.
 4. `npm install` and `npm run dev` → http://localhost:3000
 
 ### Upgrading an existing database
