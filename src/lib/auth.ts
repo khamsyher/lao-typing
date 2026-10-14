@@ -1,9 +1,7 @@
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { pool } from "./db";
 
 const googleId = process.env.GOOGLE_CLIENT_ID;
 const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -12,7 +10,7 @@ const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
 export const googleEnabled = !!(googleId && googleSecret);
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg", schema }),
+  database: pool, // tables are created by db/schema.sql (npm run db:setup)
   emailAndPassword: { enabled: true, minPasswordLength: 8 },
   socialProviders: googleEnabled
     ? {

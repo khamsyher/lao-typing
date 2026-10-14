@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getUserResults, getUserSummary } from "@/db/queries";
 import { getSession } from "@/lib/auth";
 import { formatDate, formatDuration } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n-server";
 import { labelForKey } from "@/lib/modes";
+import { getUserResults, getUserSummary } from "@/lib/results";
 
 export const metadata: Metadata = { title: "My history · Lao Typing" };
 

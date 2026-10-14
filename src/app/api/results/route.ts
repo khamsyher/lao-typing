@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { result } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { MODE_KEY_RE } from "@/lib/modes";
+import { saveResult } from "@/lib/results";
 
 const MAX_CPM = 1500; // 300 WPM — anything faster is not a human typing
 
@@ -40,18 +39,15 @@ export async function POST(request: Request) {
   if (cpm > MAX_CPM) return NextResponse.json({ error: "implausible speed" }, { status: 400 });
   const accuracy = (keystrokes as number) > 0 ? (1 - (errors as number) / (keystrokes as number)) * 100 : 0;
 
-  const [row] = await db
-    .insert(result)
-    .values({
-      userId: session.user.id,
-      modeKey,
-      cpm,
-      wpm: cpm / 5,
-      accuracy,
-      errors: errors as number,
-      seconds,
-    })
-    .returning({ id: result.id });
+  const id = await saveResult({
+    userId: session.user.id,
+    modeKey,
+    cpm,
+    wpm: cpm / 5,
+    accuracy,
+    errors: errors as number,
+    seconds,
+  });
 
-  return NextResponse.json({ id: row.id });
+  return NextResponse.json({ id });
 }

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLeaderboard, PERIODS, type Period } from "@/db/queries";
 import { getSession } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import type { StringKey } from "@/lib/i18n";
 import { getTranslator } from "@/lib/i18n-server";
 import { DEFAULT_BOARD, LEADERBOARD_BOARDS, labelForKey } from "@/lib/modes";
 import type { SearchParams } from "@/lib/redirect";
+import { getLeaderboard, PERIODS, type Period } from "@/lib/results";
 
 export const metadata: Metadata = {
   title: "Leaderboard · Lao Typing",
