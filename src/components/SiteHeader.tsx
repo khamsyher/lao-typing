@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import type { Lang } from "@/lib/i18n";
 import { save } from "@/lib/storage";
 import { useLang } from "./LangProvider";
+import Logo from "./Logo";
 
 export interface HeaderUser {
   name: string;
@@ -37,9 +38,7 @@ export default function SiteHeader({ user }: { user: HeaderUser | null }) {
     <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-xl bg-accent font-lao text-2xl leading-none text-accent-fg shadow-sm">
-            ກ
-          </span>
+          <Logo />
           <span>
             <span className="block font-lao text-xl font-bold leading-tight">ພິມລາວ · Lao Typing</span>
             <span className="block font-lao text-sm text-muted">{t("tagline")}</span>

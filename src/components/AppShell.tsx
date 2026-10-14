@@ -1,4 +1,5 @@
 import { LangProvider } from "./LangProvider";
+import Logo from "./Logo";
 import SiteHeader from "./SiteHeader";
 import { getSession } from "@/lib/auth";
 import { getLang } from "@/lib/i18n-server";
@@ -19,9 +20,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
 export function AppShellFallback() {
   return (
     <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 pt-6" aria-hidden>
-      <span className="grid size-11 place-items-center rounded-xl bg-accent font-lao text-2xl leading-none text-accent-fg">
-        ກ
-      </span>
+      <Logo />
       <span className="font-lao text-xl font-bold">ພິມລາວ · Lao Typing</span>
     </div>
   );
