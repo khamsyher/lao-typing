@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import AuthForm from "./AuthForm";
 import { getSession, googleEnabled } from "@/lib/auth";
+import { requireAccounts } from "@/lib/features";
 import { safeNext, type SearchParams } from "@/lib/redirect";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 // The page frame renders immediately; reading ?next= / ?error= (URL data) and the session
 // happens inside <Suspense>, so the route's shell stays instant on navigation.
 export default function AuthPage({ mode, searchParams }: Props) {
+  requireAccounts();
   return (
     <main className="flex flex-1 items-start justify-center px-4 py-10 sm:py-16">
       <Suspense fallback={<AuthFormSkeleton />}>

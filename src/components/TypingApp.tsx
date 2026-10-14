@@ -84,7 +84,7 @@ function resultKey(p: Prefs): string {
 
 const displayChar = (ch: string) => (ch === " " ? "␣" : isCombining(ch) ? "◌" + ch : ch);
 
-export default function TypingApp({ signedIn }: { signedIn: boolean }) {
+export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boolean; accountsEnabled: boolean }) {
   const { lang, t } = useLang();
   const [prefs, setPrefs] = useState<Prefs>(() => ({ ...DEFAULT_PREFS, ...load("prefs", {}) }));
   const [typing, setTyping] = useState<TypingState>(() => initTyping(buildText(prefs)));
@@ -369,6 +369,7 @@ export default function TypingApp({ signedIn }: { signedIn: boolean }) {
             errors={typing.errors}
             isBest={finishInfo?.isBest ?? false}
             signedIn={signedIn}
+            accountsEnabled={accountsEnabled}
             saveStatus={saveStatus}
             best={best[resultKey(prefs)]}
             t={t}
@@ -489,12 +490,14 @@ export default function TypingApp({ signedIn }: { signedIn: boolean }) {
       <section className="rounded-2xl border border-line bg-surface p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="font-lao text-sm font-semibold">{t("history")}</h2>
-          <Link
-            href={signedIn ? "/history" : "/sign-up"}
-            className="font-lao text-sm text-accent hover:underline"
-          >
-            {signedIn ? t("viewHistory") : t("joinLeaderboard")} →
-          </Link>
+          {accountsEnabled && (
+            <Link
+              href={signedIn ? "/history" : "/sign-up"}
+              className="font-lao text-sm text-accent hover:underline"
+            >
+              {signedIn ? t("viewHistory") : t("joinLeaderboard")} →
+            </Link>
+          )}
         </div>
         {recent.length === 0 ? (
           <p className="font-lao text-sm text-muted">{t("noHistory")}</p>
@@ -581,6 +584,7 @@ function ResultCard({
   errors,
   isBest,
   signedIn,
+  accountsEnabled,
   saveStatus,
   best,
   t,
@@ -591,6 +595,7 @@ function ResultCard({
   errors: number;
   isBest: boolean;
   signedIn: boolean;
+  accountsEnabled: boolean;
   saveStatus: SaveStatus;
   best?: number;
   t: (k: StringKey) => string;
@@ -613,19 +618,21 @@ function ResultCard({
           {t("best")}: <b className="font-mono text-fg">{best}</b> {t("wpm")}
         </p>
       ) : null}
-      <p className="mt-3 font-lao text-sm">
-        {signedIn ? (
-          <span className={saveStatus === "error" ? "text-error" : saveStatus === "saved" ? "text-success" : "text-muted"}>
-            {saveStatus === "saving" && t("saving")}
-            {saveStatus === "saved" && `✓ ${t("saved")}`}
-            {saveStatus === "error" && t("saveError")}
-          </span>
-        ) : (
-          <Link href="/sign-in" className="text-accent hover:underline">
-            {t("signInToSave")} →
-          </Link>
-        )}
-      </p>
+      {accountsEnabled && (
+        <p className="mt-3 font-lao text-sm">
+          {signedIn ? (
+            <span className={saveStatus === "error" ? "text-error" : saveStatus === "saved" ? "text-success" : "text-muted"}>
+              {saveStatus === "saving" && t("saving")}
+              {saveStatus === "saved" && `✓ ${t("saved")}`}
+              {saveStatus === "error" && t("saveError")}
+            </span>
+          ) : (
+            <Link href="/sign-in" className="text-accent hover:underline">
+              {t("signInToSave")} →
+            </Link>
+          )}
+        </p>
+      )}
       <div className="mt-6 flex justify-center gap-3">
         <button
           onClick={onRestart}

@@ -14,7 +14,7 @@ export interface HeaderUser {
   email: string;
 }
 
-export default function SiteHeader({ user }: { user: HeaderUser | null }) {
+export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser | null; accountsEnabled: boolean }) {
   const { lang, setLang, t } = useLang();
   const pathname = usePathname();
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function SiteHeader({ user }: { user: HeaderUser | null }) {
 
   const nav = [
     { href: "/", label: t("practice") },
-    { href: "/leaderboard", label: t("leaderboard") },
+    ...(accountsEnabled ? [{ href: "/leaderboard", label: t("leaderboard") }] : []),
     ...(user ? [{ href: "/history", label: t("myHistory") }] : []),
   ];
 
@@ -94,14 +94,14 @@ export default function SiteHeader({ user }: { user: HeaderUser | null }) {
               {t("signOut")}
             </button>
           </div>
-        ) : (
+        ) : accountsEnabled ? (
           <Link
             href="/sign-in"
             className="rounded-lg bg-accent px-4 py-1.5 font-lao text-sm font-medium text-accent-fg transition-opacity hover:opacity-90"
           >
             {t("signIn")}
           </Link>
-        )}
+        ) : null}
       </div>
     </header>
   );

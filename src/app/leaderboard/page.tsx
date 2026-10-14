@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
+import { requireAccounts } from "@/lib/features";
 import { formatDate } from "@/lib/format";
 import type { StringKey } from "@/lib/i18n";
 import { getTranslator } from "@/lib/i18n-server";
@@ -29,6 +30,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 // The board and period come from the URL, so they are read inside <Suspense>: the page's
 // shell renders instantly on navigation and the table streams in.
 export default function LeaderboardPage({ searchParams }: { searchParams: SearchParams }) {
+  requireAccounts();
   return (
     <Suspense fallback={<LeaderboardSkeleton />}>
       <Leaderboard searchParams={searchParams} />

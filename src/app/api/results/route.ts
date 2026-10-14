@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { accountsEnabled } from "@/lib/features";
 import { MODE_KEY_RE } from "@/lib/modes";
 import { saveResult } from "@/lib/results";
 
@@ -8,6 +9,7 @@ const MAX_CPM = 1500; // 300 WPM — anything faster is not a human typing
 // Save a finished test for the signed-in user. Speed and accuracy are recomputed here from
 // the raw counts rather than trusted from the client.
 export async function POST(request: Request) {
+  if (!accountsEnabled) return NextResponse.json({ error: "accounts are not enabled" }, { status: 404 });
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 

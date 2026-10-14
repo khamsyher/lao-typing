@@ -2,6 +2,7 @@ import { LangProvider } from "./LangProvider";
 import Logo from "./Logo";
 import SiteHeader from "./SiteHeader";
 import { getSession } from "@/lib/auth";
+import { accountsEnabled } from "@/lib/features";
 import { getLang } from "@/lib/i18n-server";
 
 // Everything that depends on the request (language cookie, session). The root layout renders
@@ -11,7 +12,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   const user = session ? { name: session.user.name, email: session.user.email } : null;
   return (
     <LangProvider initial={lang}>
-      <SiteHeader user={user} />
+      <SiteHeader user={user} accountsEnabled={accountsEnabled} />
       {children}
     </LangProvider>
   );

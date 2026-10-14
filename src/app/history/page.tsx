@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
+import { requireAccounts } from "@/lib/features";
 import { formatDate, formatDuration } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n-server";
 import { labelForKey } from "@/lib/modes";
@@ -13,6 +14,7 @@ export const metadata: Metadata = { title: "My history · Lao Typing" };
 // The session is request data, so it is read inside <Suspense>: the page shell renders
 // instantly and the user's results stream in.
 export default function HistoryPage() {
+  requireAccounts();
   return (
     <Suspense fallback={<HistorySkeleton />}>
       <History />

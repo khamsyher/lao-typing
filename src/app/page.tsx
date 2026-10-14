@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import ClientApp, { AppLoading } from "@/components/ClientApp";
 import { getSession } from "@/lib/auth";
+import { accountsEnabled } from "@/lib/features";
 
 // The session is request data, so it is read inside <Suspense>: the page shell renders
 // instantly and the typing app appears as soon as we know whether the visitor is signed in.
@@ -16,5 +17,5 @@ export default function Home() {
 
 async function Practice() {
   const session = await getSession();
-  return <ClientApp signedIn={!!session} />;
+  return <ClientApp signedIn={!!session} accountsEnabled={accountsEnabled} />;
 }

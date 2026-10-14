@@ -39,6 +39,14 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
 Run `npm run db:setup` again after pulling new code. The schema only adds what is missing and never
 renames, drops or deletes anything.
 
+## Deploy: practice-only first
+The site runs without any environment variables. When `DATABASE_URL` and `BETTER_AUTH_SECRET` are
+not both set, it is in **practice-only mode**: all typing practice works (results are kept in the
+browser), while sign-in, history and the leaderboard are hidden and their pages redirect to practice.
+So you can import the repo on Vercel and deploy straight away — no database needed.
+
+To switch accounts on later, follow the steps below and redeploy; nothing in the code changes.
+
 ## Deploy (Vercel + hosted PostgreSQL)
 1. Create a PostgreSQL database (Neon, Supabase, Railway, Vercel Postgres, …) and copy its
    connection string (add `?sslmode=require` if the provider needs SSL).
