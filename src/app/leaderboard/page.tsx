@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import type { StringKey } from "@/lib/i18n";
@@ -25,7 +26,34 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function LeaderboardPage({ searchParams }: { searchParams: SearchParams }) {
+// The board and period come from the URL, so they are read inside <Suspense>: the page's
+// shell renders instantly on navigation and the table streams in.
+export default function LeaderboardPage({ searchParams }: { searchParams: SearchParams }) {
+  return (
+    <Suspense fallback={<LeaderboardSkeleton />}>
+      <Leaderboard searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+function LeaderboardSkeleton() {
+  return (
+    <main className="mx-auto flex w-full max-w-6xl flex-1 animate-pulse flex-col gap-6 px-4 py-6" aria-hidden>
+      <div>
+        <div className="h-7 w-48 rounded bg-line" />
+        <div className="mt-2 h-4 w-72 rounded bg-line/70" />
+      </div>
+      <div className="h-28 rounded-2xl border border-line bg-surface" />
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="h-6 rounded bg-line/50" />
+        ))}
+      </div>
+    </main>
+  );
+}
+
+async function Leaderboard({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const boardParam = first(params.board);
   const board = (LEADERBOARD_BOARDS as readonly string[]).includes(boardParam ?? "") ? boardParam! : DEFAULT_BOARD;
