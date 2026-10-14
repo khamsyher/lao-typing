@@ -43,8 +43,9 @@ renames, drops or deletes anything.
 1. Create a PostgreSQL database (Neon, Supabase, Railway, Vercel Postgres, …) and copy its
    connection string (add `?sslmode=require` if the provider needs SSL).
 2. Run `npm run db:setup` once with `DATABASE_URL` pointing at it (or run `db/schema.sql` in its SQL console).
-3. Import the repo on Vercel and set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (your site URL) and
-   `DATABASE_URL`. On serverless, use the provider's pooled connection string.
+3. Import the repo on Vercel and, under *Settings → Environment Variables*, set `DATABASE_URL` and
+   `BETTER_AUTH_SECRET` (`.env.local` is never uploaded). `BETTER_AUTH_URL` is optional there: without it
+   the Vercel domain is used; set it if you add a custom domain. Redeploy after changing variables. On serverless, use the provider's pooled connection string.
 4. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
    `<site>/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
