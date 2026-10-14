@@ -3,19 +3,22 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --bg: #f6f4ef;
+  /* Premium blue, taken from the logo: navy ink, cerulean accent, cool blue-grey neutrals. */
+  --bg: #f3f6fb;
   --surface: #ffffff;
-  --fg: #1c1f26;
-  --muted: #7d828c;
-  --line: #e4e1d8;
-  --accent: #1f4fd1;
+  --fg: #0b1b36;
+  --muted: #5f6f8a;
+  --line: #dde5f0;
+  --accent: #1661c4;
   --accent-fg: #ffffff;
-  --accent-ring: rgb(31 79 209 / 0.22);
+  --accent-ring: rgb(22 97 196 / 0.22);
+  --accent-gradient: linear-gradient(135deg, #0e3f80 0%, #1661c4 55%, #2f86dc 100%);
+  --glow: rgb(47 134 220 / 0.10);
   --error: #d1263b;
   --success: #16803c;
   --warn: #c98a04;
   --key: #ffffff;
-  --key-down: #ebe9e2;
+  --key-down: #e6edf7;
   --finger-0: #a3a3a3;
   --finger-1: #e11d48;
   --finger-2: #f59e0b;
@@ -28,19 +31,21 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #14161c;
-  --surface: #1c1f27;
-  --fg: #e8e9ec;
-  --muted: #868b96;
-  --line: #2c303a;
-  --accent: #6b93ff;
-  --accent-fg: #0d1222;
-  --accent-ring: rgb(107 147 255 / 0.25);
+  --bg: #0a1224;
+  --surface: #101a30;
+  --fg: #e4ecf8;
+  --muted: #8c9cb8;
+  --line: #1e2b47;
+  --accent: #5ea8f2;
+  --accent-fg: #04122a;
+  --accent-ring: rgb(94 168 242 / 0.28);
+  --accent-gradient: linear-gradient(135deg, #3d8fe6 0%, #5ea8f2 55%, #8cc6f5 100%);
+  --glow: rgb(94 168 242 / 0.10);
   --error: #ff6b7d;
   --success: #4ade80;
   --warn: #f5b638;
-  --key: #22252e;
-  --key-down: #2e323d;
+  --key: #14203a;
+  --key-down: #1c2b4a;
 }
 
 @theme inline {
@@ -71,9 +76,17 @@
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 520px at 50% -160px, var(--glow), transparent 70%) no-repeat,
+    var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
+}
+
+/* Solid accent surfaces (primary buttons, active tabs, highlighted key, progress bar)
+   get the logo's navy-to-cerulean gradient. Tinted variants like bg-accent/10 stay flat. */
+.bg-accent {
+  background-image: var(--accent-gradient);
 }
 
 .caret {
