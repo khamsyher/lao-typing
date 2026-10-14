@@ -41,6 +41,18 @@ export const auth = betterAuth({
   plugins: [nextCookies()],
 });
 
+// The session is read in the root layout, so a failure here would break every page. If it
+// can't be read (missing BETTER_AUTH_SECRET, database down or misconfigured), log why and
+// treat the visitor as signed out: practice and public pages keep working.
 export async function getSession() {
-  return auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers(); // outside try: Next.js must see this request-time access
+  try {
+    return await auth.api.getSession({ headers: requestHeaders });
+  } catch (err) {
+    console.error(
+      "[auth] Could not read the session — check BETTER_AUTH_SECRET and DATABASE_URL (on Vercel: Settings → Environment Variables, then redeploy).",
+      err,
+    );
+    return null;
+  }
 }

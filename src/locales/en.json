@@ -71,5 +71,8 @@
   "historyEmpty": "No saved results yet — go practice!",
   "startPracticing": "Start practicing",
   "joinLeaderboard": "Sign up to join the leaderboard",
-  "googleError": "Google sign-in didn't complete. If you already registered this email with a password, sign in with your password instead."
+  "googleError": "Google sign-in didn't complete. If you already registered this email with a password, sign in with your password instead.",
+  "errorTitle": "Something went wrong",
+  "errorBody": "This page couldn't load. Please try again, or go back to practice.",
+  "tryAgain": "Try again"
 }
