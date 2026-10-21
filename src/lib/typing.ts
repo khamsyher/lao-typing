@@ -5,11 +5,13 @@ export interface TypingState {
   end: number | null;
   keystrokes: number;
   errors: number;
+  // Per expected character: [times it had to be typed, times it was mistyped]. Feeds weak-key training.
+  keyStats: Record<string, [number, number]>;
 }
 
 export type TypingAction =
   | { type: "reset"; text: string }
-  | { type: "input"; text: string; now: number; stopAtEnd: boolean }
+  | { type: "input"; text: string; now: number; stopAtEnd: boolean; strict?: boolean }
   | { type: "backspace"; word: boolean }
   | { type: "finish"; now: number };
 
@@ -20,6 +22,7 @@ export const initTyping = (text: string): TypingState => ({
   end: null,
   keystrokes: 0,
   errors: 0,
+  keyStats: {},
 });
 
 export function typingReducer(state: TypingState, action: TypingAction): TypingState {
@@ -30,16 +33,23 @@ export function typingReducer(state: TypingState, action: TypingAction): TypingS
     case "input": {
       if (state.end !== null || !state.chars.length) return state;
       const typed = [...state.typed];
+      const keyStats = { ...state.keyStats };
       let { keystrokes, errors } = state;
       for (const ch of action.text) {
         if (typed.length >= state.chars.length) break;
+        const expected = state.chars[typed.length];
+        const miss = ch !== expected;
         keystrokes++;
-        if (ch !== state.chars[typed.length]) errors++;
+        if (miss) errors++;
+        const [tries, misses] = keyStats[expected] ?? [0, 0];
+        keyStats[expected] = [tries + 1, misses + (miss ? 1 : 0)];
+        // Strict mode: a wrong key counts as an error but the cursor stays until it's typed right.
+        if (miss && action.strict) continue;
         typed.push(ch);
       }
       const start = state.start ?? action.now;
       const done = action.stopAtEnd && typed.length >= state.chars.length;
-      return { ...state, typed, keystrokes, errors, start, end: done ? action.now : null };
+      return { ...state, typed, keystrokes, errors, keyStats, start, end: done ? action.now : null };
     }
 
     case "backspace": {

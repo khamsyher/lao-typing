@@ -39,6 +39,28 @@ Free online Lao typing practice built with Next.js and Tailwind CSS.
 Run `npm run db:setup` again after pulling new code. The schema only adds what is missing and never
 renames, drops or deletes anything.
 
+## Premium membership — 50,000 LAK / month
+Basic practice stays free. Premium (needs accounts, i.e. a database) adds:
+- **Weak-key training** — every test records which keys were missed; Premium builds a drill from the worst ones.
+- **Progress reports** — full history, average speed per day (chart), per-test summary and weak keys
+  (free accounts see their last 10 results).
+- **Custom text & advanced exercises** — paste your own text; Lao digits/prices, punctuation and long
+  passages; *strict mode* (mistakes must be fixed before moving on).
+- **Certificates** — Lao Keyboard Foundations, Speed 30 WPM, Speed 50 WPM (≥ 95% accuracy), with a
+  public, printable page at `/certificate/<id>` for verification.
+
+**How payment works:** the member picks 1/3/6/12 months on `/premium`, transfers the total by QR or bank
+transfer, and uploads the slip. An admin reviews it at `/admin/payments` and approves (Premium is
+extended by that many months) or rejects with a reason. Set in `.env.local` / Vercel:
+```
+ADMIN_EMAILS=you@example.com            # comma-separated
+PAYMENT_BANK=BCEL
+PAYMENT_ACCOUNT_NAME=...
+PAYMENT_ACCOUNT_NUMBER=...
+PAYMENT_QR_IMAGE=/assets/payment/qr.png # put your QR at public/assets/payment/qr.png
+```
+Run `npm run db:setup` after pulling this, to add the new tables.
+
 ## Deploy: practice-only first
 The site runs without any environment variables. When `DATABASE_URL` and `BETTER_AUTH_SECRET` are
 not both set, it is in **practice-only mode**: all typing practice works (results are kept in the
@@ -67,6 +89,8 @@ To switch accounts on later, follow the steps below and redeploy; nothing in the
 - `src/lib/auth.ts` – Better Auth config; `src/app/api/auth` – auth endpoints
 - `src/lib/db.ts` – PostgreSQL connection pool (`pg`, no ORM) with `query` / `queryOne` / `transaction`
 - `db/schema.sql` – the whole database schema; `scripts/db-setup.ts` applies it (`npm run db:setup`)
-- `src/lib/results.ts` – SQL for saving results, history and the leaderboard
+- `src/lib/results.ts` – SQL for saving results, history, the leaderboard and Premium reports
+- `src/lib/premium.ts` – price, Premium status, payments and admin review; `src/lib/keystats.ts` – weak keys
+- `src/lib/courses.ts`, `src/lib/certificates.ts` – courses and certificates
 - `src/app/api/results` – saves results (speed recomputed and checked on the server)
 - `src/app/history`, `src/app/leaderboard`, `src/app/sign-in`, `src/app/sign-up` – pages

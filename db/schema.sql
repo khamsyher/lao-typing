@@ -80,3 +80,60 @@ CREATE TABLE IF NOT EXISTS result (
 CREATE INDEX IF NOT EXISTS "result_user_created_idx" ON result ("userId", "createdAt");
 -- Leaderboard: best speeds per test.
 CREATE INDEX IF NOT EXISTS "result_mode_wpm_idx" ON result ("modeKey", wpm);
+
+-- ---------------------------------------------------------------------------
+-- Premium membership (50,000 LAK per month)
+-- ---------------------------------------------------------------------------
+-- A member pays by QR / bank transfer and uploads the slip; an admin (ADMIN_EMAILS) checks it.
+-- Approving extends the member's Premium by `months`, starting from today or from the end of
+-- their current Premium, whichever is later.
+CREATE TABLE IF NOT EXISTS premium_payment (
+  id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "userId"      TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+  months        INTEGER NOT NULL CHECK (months BETWEEN 1 AND 12),
+  "amountLak"   INTEGER NOT NULL CHECK ("amountLak" > 0),
+  -- The transfer slip image, kept in the database so it works on any host (Vercel has no disk).
+  "slipType"    TEXT NOT NULL CHECK ("slipType" IN ('image/jpeg', 'image/png', 'image/webp')),
+  "slipData"    BYTEA NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  "reviewNote"  TEXT,          -- reason shown to the member when a payment is rejected
+  "reviewedBy"  TEXT,          -- admin's email
+  "reviewedAt"  TIMESTAMPTZ,
+  "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (status = 'pending' OR "reviewedAt" IS NOT NULL),
+  CHECK (status <> 'rejected' OR "reviewNote" IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS "premium_payment_user_idx" ON premium_payment ("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "premium_payment_pending_idx" ON premium_payment ("createdAt") WHERE status = 'pending';
+-- At most one slip waiting for review per member.
+CREATE UNIQUE INDEX IF NOT EXISTS "premium_payment_one_pending" ON premium_payment ("userId") WHERE status = 'pending';
+
+CREATE TABLE IF NOT EXISTS membership (
+  "userId"        TEXT PRIMARY KEY REFERENCES "user" (id) ON DELETE CASCADE,
+  "premiumUntil"  TIMESTAMPTZ NOT NULL,
+  "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Premium features
+-- ---------------------------------------------------------------------------
+-- Weak-key training: how often each character was typed and missed, summed over all tests.
+CREATE TABLE IF NOT EXISTS key_stat (
+  "userId"   TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+  ch         TEXT NOT NULL,
+  attempts   INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  misses     INTEGER NOT NULL DEFAULT 0 CHECK (misses >= 0),
+  PRIMARY KEY ("userId", ch)
+);
+
+-- Certificates, with a public page at /certificate/<id> so anyone can verify them.
+CREATE TABLE IF NOT EXISTS certificate (
+  id          TEXT PRIMARY KEY,                -- random, unguessable
+  "userId"    TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+  course      TEXT NOT NULL,                   -- see src/lib/courses.ts
+  "holderName" TEXT NOT NULL,                  -- name at the time it was issued
+  wpm         DOUBLE PRECISION NOT NULL,
+  accuracy    DOUBLE PRECISION NOT NULL,
+  "issuedAt"  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE ("userId", course)
+);

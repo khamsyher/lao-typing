@@ -140,3 +140,34 @@ export const makeWordsText = (count: number) =>
 
 export const makeSentencesText = (count: number) =>
   shuffle(SENTENCES).slice(0, count).join(" ");
+
+// Premium: advanced exercises — Lao digits and prices, punctuation, and long passages.
+// Every character can be typed on the Lao (Kedmanee) layout: digits are Lao digits (Shift + number row).
+export interface Exercise {
+  id: string;
+  title: { lo: string; en: string };
+  text: string;
+}
+
+export const ADVANCED_EXERCISES: Exercise[] = [
+  {
+    id: "digits",
+    title: { lo: "ຕົວເລກ ແລະ ລາຄາ", en: "Numbers and prices" },
+    text: "ລາຄາເຂົ້າໜຽວ ໑໕໐໐໐ ກີບ, ກາເຟລາວ ໒໕໐໐໐ ກີບ. ລວມທັງໝົດ ໔໐໐໐໐ ₭. ເບີໂທ ໐໒໐ ໕໕໕ ໑໒໓໔. ວັນທີ ໒໑ ເດືອນ ໑໐ ປີ ໒໐໒໖.",
+  },
+  {
+    id: "punctuation",
+    title: { lo: "ເຄື່ອງໝາຍວັກຕອນ", en: "Punctuation" },
+    text: "ສະບາຍດີ! ເຈົ້າສະບາຍດີບໍ? ຂ້ອຍສະບາຍດີ, ຂອບໃຈ. ມື້ນີ້ (ວັນຈັນ) ອາກາດດີ: ແດດຈ້າ ແລະ ລົມພັດເຢັນ. ຮຽນໃຫ້ໄດ້ ໑໐໐%!",
+  },
+  {
+    id: "passage-laos",
+    title: { lo: "ບົດຄວາມຍາວ: ປະເທດລາວ", en: "Long passage: Laos" },
+    text: "ປະເທດລາວ ເປັນປະເທດທີ່ບໍ່ມີທາງອອກສູ່ທະເລ ຕັ້ງຢູ່ໃຈກາງແຫຼມອິນດູຈີນ. ແມ່ນ້ຳຂອງໄຫຼຜ່ານຫຼາຍແຂວງ ແລະ ເປັນແຫຼ່ງຊີວິດຂອງປະຊາຊົນ. ນະຄອນຫຼວງວຽງຈັນ ເປັນສູນກາງການເມືອງ ແລະ ເສດຖະກິດ. ຫຼວງພະບາງ ເປັນເມືອງມໍລະດົກໂລກ ທີ່ມີວັດວາອາຮາມງົດງາມຫຼາຍ.",
+  },
+  {
+    id: "passage-culture",
+    title: { lo: "ບົດຄວາມຍາວ: ບຸນປີໃໝ່", en: "Long passage: Lao New Year" },
+    text: "ບຸນປີໃໝ່ລາວ ຈັດຂຶ້ນໃນເດືອນເມສາ ຂອງທຸກໆປີ. ຜູ້ຄົນຫົດນ້ຳໃຫ້ກັນ ເພື່ອອວຍພອນ ແລະ ຂໍໃຫ້ມີແຕ່ຄວາມໂຊກດີ. ຊາວບ້ານພາກັນໄປວັດ ຕັກບາດ ແລະ ກໍ່ພະທາດຊາຍ. ອາຫານລາວເຊັ່ນ ລາບ, ຕຳໝາກຫຸ່ງ ແລະ ເຂົ້າໜຽວ ເປັນທີ່ນິຍົມກິນໃນງານບຸນ.",
+  },
+];

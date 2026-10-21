@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import ClientApp, { AppLoading } from "@/components/ClientApp";
-import { getSession } from "@/lib/auth";
+import { getViewer } from "@/lib/premium";
 import { accountsEnabled } from "@/lib/features";
 
 // The session is request data, so it is read inside <Suspense>: the page shell renders
@@ -16,6 +16,6 @@ export default function Home() {
 }
 
 async function Practice() {
-  const session = await getSession();
-  return <ClientApp signedIn={!!session} accountsEnabled={accountsEnabled} />;
+  const viewer = await getViewer();
+  return <ClientApp signedIn={!!viewer} accountsEnabled={accountsEnabled} isPremium={!!viewer?.isPremium} />;
 }

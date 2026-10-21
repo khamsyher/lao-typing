@@ -106,3 +106,45 @@ export async function getUserSummary(userId: string): Promise<UserSummary> {
   );
   return row!;
 }
+
+// ---- Premium reports ----
+
+export interface DayPoint {
+  day: string; // YYYY-MM-DD, Laos time
+  wpm: number;
+  tests: number;
+}
+
+// Average speed per day over the last 30 days (days without tests are simply absent).
+export async function getDailyTrend(userId: string): Promise<DayPoint[]> {
+  return query<DayPoint>(
+    `SELECT to_char(("createdAt" AT TIME ZONE 'Asia/Vientiane')::date, 'YYYY-MM-DD') AS day,
+            avg(wpm)::float8 AS wpm,
+            count(*)::int    AS tests
+       FROM result
+      WHERE "userId" = $1 AND "createdAt" >= now() - interval '30 days'
+      GROUP BY 1
+      ORDER BY 1`,
+    [userId],
+  );
+}
+
+export interface ModeSummary {
+  modeKey: string;
+  tests: number;
+  bestWpm: number;
+  avgWpm: number;
+  avgAccuracy: number;
+}
+
+export async function getModeSummary(userId: string): Promise<ModeSummary[]> {
+  return query<ModeSummary>(
+    `SELECT "modeKey", count(*)::int AS tests, max(wpm) AS "bestWpm",
+            avg(wpm)::float8 AS "avgWpm", avg(accuracy)::float8 AS "avgAccuracy"
+       FROM result
+      WHERE "userId" = $1
+      GROUP BY "modeKey"
+      ORDER BY count(*) DESC, "modeKey"`,
+    [userId],
+  );
+}

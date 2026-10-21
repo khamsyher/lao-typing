@@ -14,6 +14,9 @@
   --accent-ring: rgb(22 97 196 / 0.22);
   --accent-gradient: linear-gradient(135deg, #0e3f80 0%, #1661c4 55%, #2f86dc 100%);
   --glow: rgb(47 134 220 / 0.10);
+  /* Charts: line colour validated against the surface (dataviz validator), recessive grid. */
+  --chart-line: #1661c4;
+  --chart-grid: #e8edf5;
   --error: #d1263b;
   --success: #16803c;
   --warn: #c98a04;
@@ -41,6 +44,8 @@
   --accent-ring: rgb(94 168 242 / 0.28);
   --accent-gradient: linear-gradient(135deg, #3d8fe6 0%, #5ea8f2 55%, #8cc6f5 100%);
   --glow: rgb(94 168 242 / 0.10);
+  --chart-line: #4f98e6;
+  --chart-grid: #1a2742;
   --error: #ff6b7d;
   --success: #4ade80;
   --warn: #f5b638;
@@ -61,6 +66,8 @@
   --color-warn: var(--warn);
   --color-key: var(--key);
   --color-key-down: var(--key-down);
+  --color-chart-line: var(--chart-line);
+  --color-chart-grid: var(--chart-grid);
   --color-finger-0: var(--finger-0);
   --color-finger-1: var(--finger-1);
   --color-finger-2: var(--finger-2);

@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getSession } from "@/lib/auth";
 import { requireAccounts } from "@/lib/features";
 import { formatDate, formatDuration } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n-server";
 import { labelForKey } from "@/lib/modes";
-import { getUserResults, getUserSummary } from "@/lib/results";
+import SpeedTrendChart from "@/components/SpeedTrendChart";
+import { getWeakKeys } from "@/lib/keystats";
+import { isCombining } from "@/lib/layout";
+import { getViewer } from "@/lib/premium";
+import { getDailyTrend, getModeSummary, getUserResults, getUserSummary } from "@/lib/results";
+
+const FREE_HISTORY = 10;
+const showKey = (ch: string) => (isCombining(ch) ? "◌" + ch : ch);
 
 export const metadata: Metadata = { title: "My history · Lao Typing" };
 
@@ -44,13 +50,17 @@ function HistorySkeleton() {
 }
 
 async function History() {
-  const session = await getSession();
-  if (!session) redirect("/sign-in?next=/history");
+  const viewer = await getViewer();
+  if (!viewer) redirect("/sign-in?next=/history");
 
   const { lang, t } = await getTranslator();
-  const [results, summary] = await Promise.all([
-    getUserResults(session.user.id),
-    getUserSummary(session.user.id),
+  // Free accounts see their latest results; Premium adds the full history and the report.
+  const [results, summary, trend, byMode, weakKeys] = await Promise.all([
+    getUserResults(viewer.id, viewer.isPremium ? 100 : FREE_HISTORY),
+    getUserSummary(viewer.id),
+    viewer.isPremium ? getDailyTrend(viewer.id) : Promise.resolve([]),
+    viewer.isPremium ? getModeSummary(viewer.id) : Promise.resolve([]),
+    viewer.isPremium ? getWeakKeys(viewer.id, 10) : Promise.resolve([]),
   ]);
   const last10 = results.slice(0, 10);
   const avgLast10 = last10.length ? last10.reduce((n, r) => n + r.wpm, 0) / last10.length : 0;
@@ -67,7 +77,7 @@ async function History() {
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       <div>
         <h1 className="font-lao text-2xl font-bold">{t("myHistory")}</h1>
-        <p className="font-lao text-sm text-muted">{session.user.name}</p>
+        <p className="font-lao text-sm text-muted">{viewer.name}</p>
       </div>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -80,6 +90,93 @@ async function History() {
           </div>
         ))}
       </section>
+
+      {viewer.isPremium ? (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-lao text-lg font-semibold">★ {t("progressReport")}</h2>
+
+          <div className="rounded-2xl border border-line bg-surface p-4">
+            <h3 className="mb-3 font-lao text-sm font-semibold">{t("speedTrend")}</h3>
+            {trend.length >= 2 ? (
+              <SpeedTrendChart
+                points={trend}
+                lang={lang}
+                labels={{
+                  wpm: t("wpm"),
+                  tests: t("tests"),
+                  summary: `${t("speedTrend")}: ${trend.map((p) => `${p.day} ${Math.round(p.wpm)}`).join(", ")}`,
+                }}
+              />
+            ) : (
+              <p className="py-8 text-center font-lao text-sm text-muted">{t("noTrendYet")}</p>
+            )}
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+            <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+              <h3 className="border-b border-line px-4 py-3 font-lao text-sm font-semibold">{t("byMode")}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-sm">
+                  <thead className="border-b border-line font-lao text-xs text-muted">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">{t("mode")}</th>
+                      <th className="px-4 py-2 text-right font-medium">{t("tests")}</th>
+                      <th className="px-4 py-2 text-right font-medium">{t("bestWpm")}</th>
+                      <th className="px-4 py-2 text-right font-medium">{t("wpm")}</th>
+                      <th className="px-4 py-2 text-right font-medium">{t("accuracy")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {byMode.map((m) => (
+                      <tr key={m.modeKey}>
+                        <td className="px-4 py-2 font-lao">{labelForKey(m.modeKey, lang)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-muted">{m.tests}</td>
+                        <td className="px-4 py-2 text-right font-mono font-semibold tabular-nums">{Math.round(m.bestWpm)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums">{Math.round(m.avgWpm)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums">{Math.round(m.avgAccuracy)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+              <h3 className="border-b border-line px-4 py-3 font-lao text-sm font-semibold">{t("weakKeysReport")}</h3>
+              {weakKeys.length === 0 ? (
+                <p className="px-4 py-6 font-lao text-sm text-muted">{t("weakKeysNotEnough")}</p>
+              ) : (
+                <ul className="divide-y divide-line text-sm">
+                  {weakKeys.map((k) => (
+                    <li key={k.ch} className="flex items-center gap-3 px-4 py-2">
+                      <kbd className="grid min-w-9 place-items-center rounded-md border border-line bg-bg px-2 py-0.5 font-lao text-lg">
+                        {showKey(k.ch)}
+                      </kbd>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-chart-grid">
+                        <span
+                          className="block h-full rounded-full bg-error/70"
+                          style={{ width: `${Math.min(100, Math.round(k.rate * 100))}%` }}
+                        />
+                      </span>
+                      <span className="w-24 text-right font-mono text-xs tabular-nums text-muted">
+                        {Math.round(k.rate * 100)}% · {k.misses}/{k.attempts}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <Link
+          href="/premium"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 font-lao text-sm"
+        >
+          <span>★ {t("historyLimited")}</span>
+          <span className="font-medium text-accent">{t("unlockPremium")} →</span>
+        </Link>
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-line bg-surface">
         {results.length === 0 ? (

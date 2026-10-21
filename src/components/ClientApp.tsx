@@ -7,10 +7,10 @@ const subscribe = () => () => {};
 
 // The practice text is random and preferences live in localStorage, so the app renders
 // on the client only; the server sends a lightweight placeholder.
-export default function ClientApp({ signedIn, accountsEnabled }: { signedIn: boolean; accountsEnabled: boolean }) {
+export default function ClientApp(props: { signedIn: boolean; accountsEnabled: boolean; isPremium: boolean }) {
   const mounted = useSyncExternalStore(subscribe, () => true, () => false);
   if (!mounted) return <AppLoading />;
-  return <TypingApp signedIn={signedIn} accountsEnabled={accountsEnabled} />;
+  return <TypingApp {...props} />;
 }
 
 export function AppLoading() {

@@ -12,6 +12,8 @@ import Logo from "./Logo";
 export interface HeaderUser {
   name: string;
   email: string;
+  isPremium: boolean;
+  isAdmin: boolean;
 }
 
 export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser | null; accountsEnabled: boolean }) {
@@ -24,6 +26,9 @@ export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser
     { href: "/", label: t("practice") },
     ...(accountsEnabled ? [{ href: "/leaderboard", label: t("leaderboard") }] : []),
     ...(user ? [{ href: "/history", label: t("myHistory") }] : []),
+    ...(user ? [{ href: "/certificates", label: t("certificates") }] : []),
+    ...(accountsEnabled ? [{ href: "/premium", label: `★ ${t("premium")}` }] : []),
+    ...(user?.isAdmin ? [{ href: "/admin/payments", label: t("admin") }] : []),
   ];
 
   const signOut = async () => {
@@ -35,7 +40,7 @@ export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser
   };
 
   return (
-    <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-6">
+    <header className="mx-auto flex w-full max-w-6xl flex-wrap print:hidden items-center justify-between gap-3 px-4 pt-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Link href="/" className="flex items-center gap-3">
           <Logo />
@@ -44,7 +49,7 @@ export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser
             <span className="block font-lao text-sm text-muted">{t("tagline")}</span>
           </span>
         </Link>
-        <nav className="flex gap-1">
+        <nav className="flex flex-wrap gap-1">
           {nav.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
@@ -80,10 +85,15 @@ export default function SiteHeader({ user, accountsEnabled }: { user: HeaderUser
         {user ? (
           <div className="flex items-center gap-2">
             <span
-              title={user.email}
-              className="grid size-9 place-items-center rounded-full bg-accent/15 font-lao text-sm font-semibold text-accent"
+              title={user.isPremium ? `${user.email} · ${t("premium")}` : user.email}
+              className="relative grid size-9 place-items-center rounded-full bg-accent/15 font-lao text-sm font-semibold text-accent"
             >
               {initial(user.name)}
+              {user.isPremium && (
+                <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-[9px] text-accent-fg ring-2 ring-bg">
+                  ★
+                </span>
+              )}
             </span>
             <span className="hidden max-w-32 truncate font-lao text-sm sm:inline">{user.name}</span>
             <button

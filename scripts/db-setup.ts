@@ -23,7 +23,7 @@ async function main() {
     await client.query(schema);
     const { rows } = await client.query<{ name: string }>(
       `SELECT table_name AS name FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name IN ('user', 'session', 'account', 'verification', 'result')
+        WHERE table_schema = 'public' AND table_name IN ('user', 'session', 'account', 'verification', 'result', 'premium_payment', 'membership', 'key_stat', 'certificate')
         ORDER BY 1`,
     );
     console.log(`✓ Schema applied to ${client.database} (${rows.map((r) => r.name).join(", ")})`);

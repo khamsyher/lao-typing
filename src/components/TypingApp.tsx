@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Keyboard from "./Keyboard";
 import { useLang } from "./LangProvider";
-import { LESSONS, makeLessonText, makeSentencesText, makeWordsText } from "@/lib/content";
+import { ADVANCED_EXERCISES, LESSONS, makeLessonText, makeSentencesText, makeWordsText } from "@/lib/content";
 import { MESSAGES, type StringKey } from "@/lib/i18n";
 import { FINGER_NAMES, HINT_BY_CHAR, KEY_BY_CODE, isCombining } from "@/lib/layout";
 import { labelForKey } from "@/lib/modes";
@@ -18,7 +18,10 @@ import {
   type TypingState,
 } from "@/lib/typing";
 
-type Mode = "lessons" | "words" | "sentences" | "timed";
+type Mode = "lessons" | "words" | "sentences" | "timed" | PremiumMode;
+type PremiumMode = "weak" | "custom" | "advanced";
+const PREMIUM_MODES: Mode[] = ["weak", "custom", "advanced"];
+const isPremiumMode = (m: Mode) => PREMIUM_MODES.includes(m);
 
 interface Prefs {
   mode: Mode;
@@ -28,6 +31,8 @@ interface Prefs {
   seconds: number;
   builtIn: boolean;
   keyboard: boolean;
+  advancedId: string;
+  strict: boolean;
 }
 
 interface Result {
@@ -49,15 +54,32 @@ const DEFAULT_PREFS: Prefs = {
   seconds: 30,
   builtIn: true,
   keyboard: true,
+  advancedId: ADVANCED_EXERCISES[0].id,
+  strict: false,
 };
 
-const MODES: Mode[] = ["lessons", "words", "sentences", "timed"];
+const FREE_MODES: Mode[] = ["lessons", "words", "sentences", "timed"];
+const MAX_CUSTOM_CHARS = 2000;
+
+// Inputs for building text that live outside Prefs.
+interface TextContext {
+  weakKeys: string[] | null; // null until loaded
+  customText: string;
+}
 const WORD_COUNTS = [10, 25, 50];
 const SENTENCE_COUNTS = [1, 3, 5];
 const SECONDS = [15, 30, 60, 120];
 
-function buildText(p: Prefs): string {
+function buildText(p: Prefs, ctx: TextContext): string {
   switch (p.mode) {
+    case "weak":
+      return ctx.weakKeys && ctx.weakKeys.length >= 3
+        ? makeLessonText({ id: "weak-keys", title: { lo: "", en: "" }, keys: ctx.weakKeys })
+        : "";
+    case "custom":
+      return ctx.customText;
+    case "advanced":
+      return (ADVANCED_EXERCISES.find((e) => e.id === p.advancedId) ?? ADVANCED_EXERCISES[0]).text;
     case "lessons":
       return makeLessonText(LESSONS.find((l) => l.id === p.lessonId) ?? LESSONS[0]);
     case "words":
@@ -71,6 +93,12 @@ function buildText(p: Prefs): string {
 
 function resultKey(p: Prefs): string {
   switch (p.mode) {
+    case "weak":
+      return "lessons:weak-keys";
+    case "custom":
+      return "custom";
+    case "advanced":
+      return `advanced:${p.advancedId}`;
     case "lessons":
       return `lessons:${p.lessonId}`;
     case "words":
@@ -84,10 +112,23 @@ function resultKey(p: Prefs): string {
 
 const displayChar = (ch: string) => (ch === " " ? "␣" : isCombining(ch) ? "◌" + ch : ch);
 
-export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boolean; accountsEnabled: boolean }) {
+interface Props {
+  signedIn: boolean;
+  accountsEnabled: boolean;
+  isPremium: boolean;
+}
+
+export default function TypingApp({ signedIn, accountsEnabled, isPremium }: Props) {
   const { lang, t } = useLang();
-  const [prefs, setPrefs] = useState<Prefs>(() => ({ ...DEFAULT_PREFS, ...load("prefs", {}) }));
-  const [typing, setTyping] = useState<TypingState>(() => initTyping(buildText(prefs)));
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    const p = { ...DEFAULT_PREFS, ...load<Partial<Prefs>>("prefs", {}) };
+    // Premium modes are only offered when accounts are on; otherwise fall back to lessons.
+    return isPremiumMode(p.mode) && !accountsEnabled ? { ...p, mode: "lessons" } : p;
+  });
+  const [customText, setCustomText] = useState(() => load<string>("customText", ""));
+  const [weakKeys, setWeakKeys] = useState<string[] | null>(null);
+  const ctxRef = useRef<TextContext>({ weakKeys: null, customText });
+  const [typing, setTyping] = useState<TypingState>(() => initTyping(buildText(prefs, { weakKeys: null, customText })));
   const [history, setHistory] = useState<Result[]>(() => load("history", []));
   const [best, setBest] = useState<Record<string, number>>(() => load("best", {}));
   const [finishInfo, setFinishInfo] = useState<{ isBest: boolean } | null>(null);
@@ -109,7 +150,14 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
       const res = await fetch("/api/results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modeKey, correct, keystrokes: state.keystrokes, errors: state.errors, seconds }),
+        body: JSON.stringify({
+          modeKey,
+          correct,
+          keystrokes: state.keystrokes,
+          errors: state.errors,
+          seconds,
+          keyStats: state.keyStats,
+        }),
       });
       setSaveStatus(res.ok ? "saved" : "error");
     } catch {
@@ -157,7 +205,7 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
 
   const restart = useCallback(
     (p: Prefs = prefsRef.current, sameText = false) => {
-      const text = sameText ? typingRef.current.chars.join("") : buildText(p);
+      const text = sameText ? typingRef.current.chars.join("") : buildText(p, ctxRef.current);
       apply({ type: "reset", text });
       setFinishInfo(null);
       setSaveStatus("idle");
@@ -177,9 +225,38 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
   };
 
   const typeText = (text: string) => {
-    setLatinWarn(/[A-Za-z]/.test(text));
-    apply({ type: "input", text, now: Date.now(), stopAtEnd: true });
+    setLatinWarn(/[A-Za-z]/.test(text) && prefsRef.current.mode !== "custom");
+    const strict = prefsRef.current.strict && isPremium;
+    apply({ type: "input", text, now: Date.now(), stopAtEnd: true, strict });
   };
+
+  // Premium: load the member's weakest keys, then build their drill.
+  const loadWeakKeys = useCallback(async () => {
+    const res = await fetch("/api/premium/weak-keys").catch(() => null);
+    const data = res?.ok ? ((await res.json()) as { keys: { ch: string }[] }) : { keys: [] };
+    const keys = data.keys.map((k) => k.ch);
+    ctxRef.current = { ...ctxRef.current, weakKeys: keys };
+    setWeakKeys(keys);
+    if (prefsRef.current.mode === "weak") restart();
+  }, [restart]);
+
+  const selectMode = (mode: Mode) => {
+    updatePrefs({ mode });
+    if (mode === "weak" && isPremium) void loadWeakKeys();
+  };
+
+  const applyCustomText = (raw: string) => {
+    const text = raw.replace(/\s+/g, " ").trim().slice(0, MAX_CUSTOM_CHARS);
+    ctxRef.current = { ...ctxRef.current, customText: text };
+    setCustomText(text);
+    save("customText", text);
+    restart();
+  };
+
+  // Weak-keys mode chosen on an earlier visit: fetch the keys once on mount.
+  useEffect(() => {
+    if (prefsRef.current.mode === "weak" && isPremium) void loadWeakKeys();
+  }, [isPremium, loadWeakKeys]);
 
   // Tick the clock while a test is running; end timed tests when time runs out.
   useEffect(() => {
@@ -301,15 +378,16 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
       {/* Mode selection */}
       <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 sm:p-4">
         <div className="flex flex-wrap gap-1.5">
-          {MODES.map((m) => (
+          {[...FREE_MODES, ...(accountsEnabled ? PREMIUM_MODES : [])].map((m) => (
             <button
               key={m}
-              onClick={() => updatePrefs({ mode: m })}
+              onClick={() => selectMode(m)}
               className={`rounded-lg px-4 py-2 font-lao text-sm font-medium transition-colors ${
                 prefs.mode === m ? "bg-accent text-accent-fg" : "text-muted hover:bg-bg hover:text-fg"
               }`}
             >
-              {t(m)}
+              {isPremiumMode(m) && <span className={prefs.mode === m ? "" : "text-accent"}>★ </span>}
+              {t(m === "weak" ? "weakKeys" : m)}
             </button>
           ))}
         </div>
@@ -340,6 +418,33 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
                 {n} {t("seconds")}
               </Chip>
             ))}
+          {prefs.mode === "advanced" &&
+            isPremium &&
+            ADVANCED_EXERCISES.map((e) => (
+              <Chip key={e.id} active={prefs.advancedId === e.id} onClick={() => updatePrefs({ advancedId: e.id })}>
+                {e.title[lang]}
+              </Chip>
+            ))}
+          {prefs.mode === "weak" && isPremium && (
+            <p className="flex flex-wrap items-center gap-1.5 font-lao text-sm text-muted">
+              {weakKeys && weakKeys.length >= 3 ? (
+                <>
+                  {t("weakKeysIntro")}
+                  {weakKeys.map((k) => (
+                    <kbd key={k} className="rounded-md border border-line bg-bg px-2 py-0.5 text-base text-fg">
+                      {displayChar(k)}
+                    </kbd>
+                  ))}
+                </>
+              ) : weakKeys ? (
+                t("weakKeysNotEnough")
+              ) : (
+                t("pleaseWait")
+              )}
+            </p>
+          )}
+          {prefs.mode === "custom" && isPremium && <CustomTextEditor initial={customText} onUse={applyCustomText} t={t} />}
+          {isPremiumMode(prefs.mode) && !isPremium && <p className="font-lao text-sm text-muted">★ {t("premiumLocked")}</p>}
         </div>
       </section>
 
@@ -363,7 +468,13 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
           />
         </div>
 
-        {finished ? (
+        {isPremiumMode(prefs.mode) && !isPremium ? (
+          <PremiumLock t={t} signedIn={signedIn} />
+        ) : !typing.chars.length ? (
+          <div className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center font-lao text-muted">
+            {prefs.mode === "custom" ? t("customPlaceholder") : t("weakKeysNotEnough")}
+          </div>
+        ) : finished ? (
           <ResultCard
             stats={stats}
             errors={typing.errors}
@@ -473,6 +584,14 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
             title={t("builtInHelp")}
           />
           <Toggle checked={prefs.keyboard} onChange={(v) => updatePrefs({ keyboard: v }, false)} label={t("keyboard")} />
+          {isPremium && (
+            <Toggle
+              checked={prefs.strict}
+              onChange={(v) => updatePrefs({ strict: v })}
+              label={`★ ${t("strictMode")}`}
+              title={t("strictHelp")}
+            />
+          )}
           <button
             onClick={() => restart(prefs, true)}
             className="rounded-lg border border-line bg-surface px-3 py-1.5 font-lao text-fg transition-colors hover:border-accent hover:text-accent"
@@ -520,6 +639,63 @@ export default function TypingApp({ signedIn, accountsEnabled }: { signedIn: boo
       </section>
 
       <footer className="pb-2 text-center font-lao text-xs text-muted">{t("footer")}</footer>
+    </div>
+  );
+}
+
+function PremiumLock({ t, signedIn }: { t: (k: StringKey) => string; signedIn: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-accent/30 bg-surface px-6 py-12 text-center">
+      <span className="grid size-12 place-items-center rounded-full bg-accent/10 text-2xl text-accent" aria-hidden>
+        ★
+      </span>
+      <p className="font-lao text-lg font-semibold">{t("premiumLocked")}</p>
+      <ul className="font-lao text-sm text-muted">
+        <li>{t("featWeakKeys")}</li>
+        <li>{t("featCustom")}</li>
+      </ul>
+      <Link
+        href={signedIn ? "/premium" : "/sign-in?next=/premium"}
+        className="rounded-lg bg-accent px-5 py-2.5 font-lao text-sm font-medium text-accent-fg hover:opacity-90"
+      >
+        {t("unlockPremium")} →
+      </Link>
+    </div>
+  );
+}
+
+function CustomTextEditor({
+  initial,
+  onUse,
+  t,
+}: {
+  initial: string;
+  onUse: (text: string) => void;
+  t: (k: StringKey) => string;
+}) {
+  const [draft, setDraft] = useState(initial);
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        maxLength={MAX_CUSTOM_CHARS}
+        rows={3}
+        placeholder={t("customPlaceholder")}
+        className="w-full resize-y rounded-xl border border-line bg-bg px-3 py-2 font-lao text-base outline-none focus:border-accent"
+      />
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-xs text-muted">
+          {draft.length}/{MAX_CUSTOM_CHARS}
+        </span>
+        <button
+          onClick={() => onUse(draft)}
+          disabled={!draft.trim()}
+          className="rounded-lg bg-accent px-4 py-1.5 font-lao text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-40"
+        >
+          {t("useThisText")}
+        </button>
+      </div>
     </div>
   );
 }

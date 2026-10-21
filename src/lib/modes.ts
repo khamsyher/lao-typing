@@ -1,8 +1,10 @@
-import { LESSONS } from "./content";
+import { ADVANCED_EXERCISES, LESSONS } from "./content";
 import { translate, type Lang } from "./i18n";
 
 // Every result is stored under a mode key such as "timed:60" or "lessons:top".
-export const MODE_KEY_RE = /^(lessons:[a-z-]+|words:(10|25|50)|sentences:(1|3|5)|timed:(15|30|60|120))$/;
+// Premium practice is stored too: "lessons:weak-keys", "custom" and "advanced:<exercise>".
+export const MODE_KEY_RE =
+  /^(lessons:[a-z-]+|words:(10|25|50)|sentences:(1|3|5)|timed:(15|30|60|120)|custom|advanced:[a-z-]+)$/;
 
 // Tests with comparable text, so they get a public leaderboard. Lessons are drills and do not.
 export const LEADERBOARD_BOARDS = [
@@ -25,7 +27,12 @@ export function labelForKey(key: string, lang: Lang): string {
   const t = (k: Parameters<typeof translate>[1]) => translate(lang, k);
   switch (mode) {
     case "lessons":
+      if (value === "weak-keys") return t("weakKeys");
       return (LESSONS.find((l) => l.id === value) ?? LESSONS[0]).title[lang];
+    case "custom":
+      return t("custom");
+    case "advanced":
+      return `${t("advanced")} · ${ADVANCED_EXERCISES.find((e) => e.id === value)?.title[lang] ?? value}`;
     case "words":
       return `${t("words")} · ${value}`;
     case "sentences":
