@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS premium_payment (
   "userId"      TEXT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
   months        INTEGER NOT NULL CHECK (months BETWEEN 1 AND 12),
   "amountLak"   INTEGER NOT NULL CHECK ("amountLak" > 0),
-  -- The transfer slip image, kept in the database so it works on any host (Vercel has no disk).
+  -- The transfer slip image is stored in the database so it works without persistent local storage.
   "slipType"    TEXT NOT NULL CHECK ("slipType" IN ('image/jpeg', 'image/png', 'image/webp')),
   "slipData"    BYTEA NOT NULL,
   status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),

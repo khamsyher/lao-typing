@@ -51,7 +51,7 @@ Basic practice stays free. Premium (needs accounts, i.e. a database) adds:
 
 **How payment works:** the member picks 1/3/6/12 months on `/premium`, transfers the total by QR or bank
 transfer, and uploads the slip. An admin reviews it at `/admin/payments` and approves (Premium is
-extended by that many months) or rejects with a reason. Set in `.env.local` / Vercel:
+extended by that many months) or rejects with a reason. Set these values in `.env.local` on the VPS:
 ```
 ADMIN_EMAILS=you@example.com            # comma-separated
 PAYMENT_BANK=BCEL
@@ -63,21 +63,46 @@ Run `npm run db:setup` after pulling this, to add the new tables.
 
 ## Deploy: practice-only first
 The site runs without any environment variables. When `DATABASE_URL` and `BETTER_AUTH_SECRET` are
-not both set, it is in **practice-only mode**: all typing practice works (results are kept in the
-browser), while sign-in, history and the leaderboard are hidden and their pages redirect to practice.
-So you can import the repo on Vercel and deploy straight away — no database needed.
+not both set, or `BETTER_AUTH_URL` is missing, it is in **practice-only mode**: all typing practice
+works (results are kept in the browser), while account features are hidden and their pages redirect
+to practice.
 
-To switch accounts on later, follow the steps below and redeploy; nothing in the code changes.
+To enable accounts and the other account-based features, configure all three variables on the VPS
+and restart the app.
 
-## Deploy (Vercel + hosted PostgreSQL)
-1. Create a PostgreSQL database (Neon, Supabase, Railway, Vercel Postgres, …) and copy its
-   connection string (add `?sslmode=require` if the provider needs SSL).
-2. Run `npm run db:setup` once with `DATABASE_URL` pointing at it (or run `db/schema.sql` in its SQL console).
-3. Import the repo on Vercel and, under *Settings → Environment Variables*, set `DATABASE_URL` and
-   `BETTER_AUTH_SECRET` (`.env.local` is never uploaded). `BETTER_AUTH_URL` is optional there: without it
-   the Vercel domain is used; set it if you add a custom domain. Redeploy after changing variables. On serverless, use the provider's pooled connection string.
-4. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
-   `<site>/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+## Deploy on a VPS
+This app runs as a Node.js server. Put it behind a reverse proxy such as Nginx and enable HTTPS for
+your domain.
+
+1. Install a supported Node.js LTS release and PostgreSQL on the VPS, or create a PostgreSQL database
+   with a provider reachable from the VPS.
+2. Clone the repository on the VPS, enter the project directory, and install dependencies:
+   ```
+   npm ci
+   ```
+3. Create `.env.local` from `.env.example`. Set these required production values:
+   ```
+   DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/lao_typing_app
+   BETTER_AUTH_SECRET=<a-random-secret-at-least-32-characters>
+   BETTER_AUTH_URL=https://your-domain.example
+   ```
+   Use the public HTTPS address for `BETTER_AUTH_URL`. Keep `.env.local` private and do not commit it.
+4. Create or update the production database schema:
+   ```
+   npm run db:setup
+   ```
+5. Build and start the production server:
+   ```
+   npm run build
+   npm run start -- --hostname 127.0.0.1 --port 3000
+   ```
+   Keep the process running with a service manager such as systemd or PM2, and configure Nginx to
+   proxy HTTPS traffic for your domain to `127.0.0.1:3000`.
+6. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
+   `https://your-domain.example/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET` in `.env.local`, then restart the app.
+7. For Premium payments, set `ADMIN_EMAILS` and the payment details described above in `.env.local`,
+   then restart the app.
 
 ## Where things live
 - `src/lib/layout.ts` – keyboard layout and finger map

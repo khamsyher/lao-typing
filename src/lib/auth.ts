@@ -10,24 +10,15 @@ const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
 // Google sign-in is offered only when its credentials are configured.
 export const googleEnabled = !!(googleId && googleSecret);
 
-// On Vercel, fall back to the addresses Vercel provides when BETTER_AUTH_URL is not set:
-// the production domain for production deployments, the deployment's own URL for previews.
-const https = (host?: string) => (host ? `https://${host}` : undefined);
-const vercelURL = https(
-  process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL,
-);
+const authURL = process.env.BETTER_AUTH_URL;
+const authOrigin = authURL ? new URL(authURL).origin : undefined;
 
 // Created on first use, and only when accounts are enabled: Better Auth checks its secret as
 // soon as it is set up, so in practice-only mode it is never set up at all.
 function createAuth() {
   return betterAuth({
-    baseURL: process.env.BETTER_AUTH_URL || vercelURL,
-    // Sign-in requests are accepted from any of this deployment's Vercel addresses.
-    trustedOrigins: [
-      https(process.env.VERCEL_URL),
-      https(process.env.VERCEL_BRANCH_URL),
-      https(process.env.VERCEL_PROJECT_PRODUCTION_URL),
-    ].filter((origin): origin is string => !!origin),
+    baseURL: authURL,
+    trustedOrigins: authOrigin ? [authOrigin] : [],
     database: pool, // tables are created by db/schema.sql (npm run db:setup)
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     socialProviders: googleEnabled
@@ -61,7 +52,7 @@ export async function getSession() {
     return await getAuth().api.getSession({ headers: requestHeaders });
   } catch (err) {
     console.error(
-      "[auth] Could not read the session — check BETTER_AUTH_SECRET and DATABASE_URL (on Vercel: Settings → Environment Variables, then redeploy).",
+      "[auth] Could not read the session — check BETTER_AUTH_URL, BETTER_AUTH_SECRET, DATABASE_URL, and database connectivity.",
       err,
     );
     return null;

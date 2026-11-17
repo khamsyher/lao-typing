@@ -17,7 +17,7 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return admins.includes(email.toLowerCase());
 }
 
-// Where members send the money. Set these in .env.local / Vercel; unset ones are not shown.
+// Where members send the money. Set these in .env.local on the VPS; unset ones are not shown.
 export function paymentDetails() {
   return {
     bank: process.env.PAYMENT_BANK || null,
