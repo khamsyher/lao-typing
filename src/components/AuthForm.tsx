@@ -9,11 +9,12 @@ import { useLang } from "./LangProvider";
 interface Props {
   mode: "sign-in" | "sign-up";
   googleEnabled: boolean;
+  passwordResetEnabled: boolean;
   next: string;
   oauthError?: boolean;
 }
 
-export default function AuthForm({ mode, googleEnabled, next, oauthError = false }: Props) {
+export default function AuthForm({ mode, googleEnabled, passwordResetEnabled, next, oauthError = false }: Props) {
   const { t } = useLang();
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -120,6 +121,14 @@ export default function AuthForm({ mode, googleEnabled, next, oauthError = false
           {pending ? t("pleaseWait") : isSignUp ? t("signUp") : t("signIn")}
         </button>
       </form>
+
+      {!isSignUp && passwordResetEnabled && (
+        <p className="mt-3 text-right font-lao text-sm">
+          <Link href="/forgot-password" className="text-accent hover:underline">
+            {t("forgotPassword")}
+          </Link>
+        </p>
+      )}
 
       <p className="mt-6 text-center font-lao text-sm text-muted">
         {isSignUp ? t("haveAccount") : t("noAccount")}{" "}

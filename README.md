@@ -101,7 +101,10 @@ your domain.
 6. Optional Google sign-in: create an OAuth client in Google Cloud, add the redirect URI
    `https://your-domain.example/api/auth/callback/google`, and set `GOOGLE_CLIENT_ID` and
    `GOOGLE_CLIENT_SECRET` in `.env.local`, then restart the app.
-7. For Premium payments, set `ADMIN_EMAILS` and the payment details described above in `.env.local`,
+7. To enable forgot-password emails, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+   `SMTP_PASSWORD`, and `SMTP_FROM` in `.env.local`, then restart the app. The forgot-password link
+   appears on the sign-in page when SMTP is configured.
+8. For Premium payments, set `ADMIN_EMAILS` and the payment details described above in `.env.local`,
    then restart the app.
 
 ## Where things live

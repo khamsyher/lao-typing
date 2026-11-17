@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import AuthForm from "./AuthForm";
-import { getSession, googleEnabled } from "@/lib/auth";
+import { getSession, googleEnabled, passwordResetEnabled } from "@/lib/auth";
 import { requireAccounts } from "@/lib/features";
 import { safeNext, type SearchParams } from "@/lib/redirect";
 
@@ -27,7 +27,15 @@ async function AuthGate({ mode, searchParams }: Props) {
   const params = await searchParams;
   const next = safeNext(params.next);
   if (await getSession()) redirect(next);
-  return <AuthForm mode={mode} googleEnabled={googleEnabled} next={next} oauthError={!!params.error} />;
+  return (
+    <AuthForm
+      mode={mode}
+      googleEnabled={googleEnabled}
+      passwordResetEnabled={passwordResetEnabled}
+      next={next}
+      oauthError={!!params.error}
+    />
+  );
 }
 
 function AuthFormSkeleton() {

@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
+import nodemailer from "nodemailer";
 import { headers } from "next/headers";
 import { pool } from "./db";
 import { accountsEnabled } from "./features";
@@ -13,6 +14,33 @@ export const googleEnabled = !!(googleId && googleSecret);
 const authURL = process.env.BETTER_AUTH_URL;
 const authOrigin = authURL ? new URL(authURL).origin : undefined;
 
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpConfig =
+  process.env.SMTP_HOST &&
+  process.env.SMTP_USER &&
+  process.env.SMTP_PASSWORD &&
+  process.env.SMTP_FROM &&
+  Number.isInteger(smtpPort) &&
+  smtpPort > 0 &&
+  smtpPort <= 65535
+    ? {
+        host: process.env.SMTP_HOST,
+        port: smtpPort,
+        user: process.env.SMTP_USER,
+        password: process.env.SMTP_PASSWORD,
+        from: process.env.SMTP_FROM,
+      }
+    : null;
+export const passwordResetEnabled = smtpConfig !== null;
+const mailer = smtpConfig
+  ? nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.port === 465,
+      auth: { user: smtpConfig.user, pass: smtpConfig.password },
+    })
+  : null;
+
 // Created on first use, and only when accounts are enabled: Better Auth checks its secret as
 // soon as it is set up, so in practice-only mode it is never set up at all.
 function createAuth() {
@@ -20,7 +48,22 @@ function createAuth() {
     baseURL: authURL,
     trustedOrigins: authOrigin ? [authOrigin] : [],
     database: pool, // tables are created by db/schema.sql (npm run db:setup)
-    emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      ...(smtpConfig && mailer
+        ? {
+            sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+              await mailer.sendMail({
+                from: smtpConfig.from,
+                to: user.email,
+                subject: "Reset your Lao Typing password",
+                text: `Use this link to reset your Lao Typing password:\n\n${url}\n\nIf you did not request this, you can ignore this email.`,
+              });
+            },
+          }
+        : {}),
+    },
     socialProviders: googleEnabled
       ? {
           google: {
